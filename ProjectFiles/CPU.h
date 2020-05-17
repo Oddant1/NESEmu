@@ -11,7 +11,7 @@ class CPUClass
     // CPU Registers
     // These will probably be interacted with in hex
     uint16_t programCounter = 0;
-    uint8_t stackPointer = 0;
+    uint8_t stackPointer = 0xFF;
     uint8_t Accumulator = 0;
     uint8_t X = 0;
     uint8_t Y = 0;
