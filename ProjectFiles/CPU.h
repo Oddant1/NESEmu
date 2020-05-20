@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#include "convert.h"
-
 // TODO: Verify correct endianness
 enum SetStatus
 {
@@ -25,9 +23,6 @@ class CPUClass
     public:
 
     // CPU Registers
-    // TODO: Do we want these signed? Does it matter? We need to interpret the
-    // numbers as signed magnitude not 2's compliment. Worst case, lookup table
-    // if hi bit set, sub 1, flip bits, set hi bit. Lookup may be faster though
     // These will probably be interacted with in hex
     uint16_t programCounter = 0x34;
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
