@@ -45,7 +45,8 @@ void CPUClass::ADC_Immediate()
     // TODO: Is immediate just add to acc?
     // TODO: NES uses signed magnitude (for some reason. . .) This is a problem
     // because g++ uses 2's compliment. Need to translate
-    accumulator += memory[ programCounter ];
+    int8_t add = convert( memory[ programCounter ] );
+    accumulator += add;
 }
 
 // $ 65

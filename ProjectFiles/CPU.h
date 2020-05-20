@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "convert.h"
+
 // TODO: Verify correct endianness
 enum SetStatus
 {
@@ -27,19 +29,18 @@ class CPUClass
     // numbers as signed magnitude not 2's compliment. Worst case, lookup table
     // if hi bit set, sub 1, flip bits, set hi bit. Lookup may be faster though
     // These will probably be interacted with in hex
-    // TODO: Figure out where/how to initialize program counter
-    uint16_t programCounter = 0;
+    uint16_t programCounter = 0x34;
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
     // 0x0100
     uint8_t stackPointer = 0xFF;
-    int8_t accumulator = 0;
-    int8_t X = 0;
-    int8_t Y = 0;
+    int8_t accumulator = 0x0;
+    int8_t X = 0x0;
+    int8_t Y = 0x0;
 
     // This will probably be interacted with using bitwise operations
-    uint8_t Status = 0;
+    uint8_t Status = 0xFD;
 
-    uint8_t memory [65536] = {};
+    uint8_t memory [0x10000] = {};
 
     // TODO: Will probably end up returning some kind of error code
     void run();
@@ -62,6 +63,5 @@ class CPUClass
     void ADC_Indirect_X();  // $61
     void ADC_Indirect_Y();  // $71
 };
-
 
 #endif

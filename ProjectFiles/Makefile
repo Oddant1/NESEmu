@@ -1,5 +1,5 @@
 # Object files to either reference or create
-OBJECTS = NESEmu.o CPU.o
+OBJECTS = NESEmu.o CPU.o convert.o
 # The executable file that will be created at the end
 EXEC = NESEmu.out
 # The flags to use for compilation
