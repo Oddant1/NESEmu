@@ -2,10 +2,19 @@
 
 // This will be our main loop. I think the main function will just init then
 // start running here
-void CPUClass::run()
+void CPUClass::run( std::ifstream &ROMImage )
 {
     // TODO: Need some kind of wait code to make sure the processor stays in
     // sync. Leverington's code could be some inspiration for this
+    ROMImage.read( ( char * )memory, 4 );
+
+    // TODO: This is very much a "for now" roughup of finding which opcode to use.
+    // As stated elsewhere we want the final method of finding a funciton to be
+    // based on some kind of lookup table probably
+    if( memory[ programCounter ] == 0x69 )
+    {
+        ADC_Immediate();
+    }
 }
 
 // Do these need to be seperate functions? Fundamentally what will this look like?
@@ -43,6 +52,26 @@ void CPUClass::ADC_Immediate()
 {
     // TODO: Set status bits appropriately
     // TODO: Is immediate just add to acc?
+    int8_t prev = accumulator;
+
+    programCounter++;
+
+    accumulator += memory[ programCounter ];
+
+    // TODO: What is the difference between SET_CARRY and SET_OVERFLOW
+    // TODO: This actually has an instruction to set it
+    // if( ( prev < accumulator && memory[ programCounter ] > 0 ) ||
+    //     ( prev > accumulator && memory[ programCounter ] < 0 ) )
+    // {
+    //     status |= SET_CARRY;
+    // }
+
+    // if( accumulator == 0 )
+    // {
+    //     status |= SET_ZERO;
+    // }
+
+    programCounter++;
 }
 
 // $ 65

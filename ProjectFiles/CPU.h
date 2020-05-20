@@ -2,6 +2,7 @@
 #define CPU_H
 
 #include <stdint.h>
+#include <fstream>
 
 // TODO: Verify correct endianness
 enum SetStatus
@@ -24,7 +25,8 @@ class CPUClass
 
     // CPU Registers
     // These will probably be interacted with in hex
-    uint16_t programCounter = 0x34;
+    // uint16_t programCounter = 0x34;
+    uint16_t programCounter = 0x0;
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
     // 0x0100
     uint8_t stackPointer = 0xFF;
@@ -33,12 +35,12 @@ class CPUClass
     int8_t Y = 0x0;
 
     // This will probably be interacted with using bitwise operations
-    uint8_t Status = 0xFD;
+    uint8_t status = 0xFD;
 
     uint8_t memory [0x10000] = {};
 
     // TODO: Will probably end up returning some kind of error code
-    void run();
+    void run( std::ifstream &ROMImage );
 
     void fetch();
     void decode();
