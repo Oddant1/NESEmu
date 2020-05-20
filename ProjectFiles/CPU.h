@@ -32,9 +32,9 @@ class CPUClass
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
     // 0x0100
     uint8_t stackPointer = 0xFF;
-    uint8_t accumulator = 0;
-    uint8_t X = 0;
-    uint8_t Y = 0;
+    int8_t accumulator = 0;
+    int8_t X = 0;
+    int8_t Y = 0;
 
     // This will probably be interacted with using bitwise operations
     uint8_t Status = 0;
@@ -53,14 +53,14 @@ class CPUClass
 
     // CPU OpCode methods
     // TODO: Will probably end up returning some kind of error code
-    void CPUClass::ADC_Immediate();   // $69
-    void CPUClass::ADC_Zero_Page();   // $65
-    void CPUClass::ADC_Zero_Page_X(); // $75
-    void CPUClass::ADC_Absolute();    // $6D
-    void CPUClass::ADC_Absolute_X();  // $7D
-    void CPUClass::ADC_Absolute_Y();  // $79
-    void CPUClass::ADC_Indirect_X();  // $61
-    void CPUClass::ADC_Indirect_Y();  // $71
+    void ADC_Immediate();   // $69
+    void ADC_Zero_Page();   // $65
+    void ADC_Zero_Page_X(); // $75
+    void ADC_Absolute();    // $6D
+    void ADC_Absolute_X();  // $7D
+    void ADC_Absolute_Y();  // $79
+    void ADC_Indirect_X();  // $61
+    void ADC_Indirect_Y();  // $71
 };
 
 
