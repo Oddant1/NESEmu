@@ -25,7 +25,6 @@ class CPUClass
 
     // CPU Registers
     // These will probably be interacted with in hex
-    // uint16_t programCounter = 0x34;
     uint16_t programCounter = 0x0;
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
     // 0x0100
@@ -35,9 +34,9 @@ class CPUClass
     int8_t Y = 0x0;
 
     // This will probably be interacted with using bitwise operations
-    uint8_t status = 0xFD;
+    uint8_t status = 0x00;//0x34;
 
-    uint8_t memory [0x10000] = {};
+    int8_t memory [0x10000] = {};
 
     // TODO: Will probably end up returning some kind of error code
     void run( std::ifstream &ROMImage );
@@ -45,6 +44,18 @@ class CPUClass
     void fetch();
     void decode();
     void execute();
+
+    void updateNegative();
+    // TODO: This has opcodes
+    void updateOverflow( int8_t oldAccumulator );
+    // TODO: This has opcodes
+    void updateBreak();
+    // TODO: This has opcodes
+    void updateDecimal();
+    void updateInterruptDisable();
+    void updateZero();
+    void updateCarry( int8_t oldAccumulator );
+
 
     // Now the real question, are all opcodes just methods of this class?
     // Probably. That's a lot of methods. . . Also are they inline?

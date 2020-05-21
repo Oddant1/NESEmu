@@ -11,9 +11,12 @@ void CPUClass::run( std::ifstream &ROMImage )
     // TODO: This is very much a "for now" roughup of finding which opcode to use.
     // As stated elsewhere we want the final method of finding a funciton to be
     // based on some kind of lookup table probably
-    if( memory[ programCounter ] == 0x69 )
+    for( int i = 0; i < 4; i++ )
     {
-        ADC_Immediate();
+        if( memory[ programCounter ] == 0x69 )
+        {
+            ADC_Immediate();
+        }
     }
 }
 
@@ -45,6 +48,70 @@ void CPUClass::execute()
 
 }
 
+void CPUClass::updateNegative()
+{
+    if( accumulator < 0 )
+    {
+        status |= SET_NEGATIVE;
+    }
+    else
+    {
+        status &= ~SET_NEGATIVE;
+    }
+}
+
+void CPUClass::updateOverflow( int8_t oldAccumulator )
+{
+    if( accumulator < 0 && oldAccumulator > 0 && memory[ programCounter ] > 0 )
+    {
+        status |= SET_OVERFLOW;
+    }
+    else
+    {
+        status &= ~SET_OVERFLOW;
+    }
+}
+
+void CPUClass::updateBreak()
+{
+
+}
+
+void CPUClass::updateDecimal()
+{
+
+}
+
+void CPUClass::updateInterruptDisable()
+{
+
+}
+
+void CPUClass::updateZero()
+{
+    if( accumulator == 0 )
+    {
+        status |= SET_ZERO;
+    }
+    else
+    {
+        status &= ~SET_ZERO;
+    }
+}
+
+void CPUClass::updateCarry( int8_t oldAccumulator )
+{
+    if( ( accumulator > oldAccumulator && memory[ programCounter ] < 0 ) ||
+        ( accumulator < oldAccumulator && memory[ programCounter ] > 0 ) )
+    {
+        status |= SET_CARRY;
+    }
+    else
+    {
+        status &= ~SET_CARRY;
+    }
+}
+
 // TODO: Are different functions necessary for the different addressing modes?
 // ANSWER: Probably? Not like any of these operations are particularly complicated
 // $69
@@ -52,24 +119,16 @@ void CPUClass::ADC_Immediate()
 {
     // TODO: Set status bits appropriately
     // TODO: Is immediate just add to acc?
-    int8_t prev = accumulator;
+    int8_t oldAccumulator = accumulator;
 
     programCounter++;
 
     accumulator += memory[ programCounter ];
 
-    // TODO: What is the difference between SET_CARRY and SET_OVERFLOW
-    // TODO: This actually has an instruction to set it
-    // if( ( prev < accumulator && memory[ programCounter ] > 0 ) ||
-    //     ( prev > accumulator && memory[ programCounter ] < 0 ) )
-    // {
-    //     status |= SET_CARRY;
-    // }
-
-    // if( accumulator == 0 )
-    // {
-    //     status |= SET_ZERO;
-    // }
+    updateNegative();
+    updateOverflow( oldAccumulator );
+    updateZero();
+    updateCarry( oldAccumulator );
 
     programCounter++;
 }
