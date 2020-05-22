@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <fstream>
 
+typedef int ( *voidFunc )();
+
 // TODO: Verify correct endianness
 enum SetStatus
 {
@@ -17,34 +19,63 @@ enum SetStatus
     SET_CARRY             = 0b00000001
 };
 
+enum IndexingMode
+{
+    NONE,
+    WITH_X,
+    WITH_Y
+};
+
 class CPUClass
 {
     // TODO: Need to make the CPU keep time somehow
     // Very much subject to change
     public:
 
-    // CPU Registers
+    /***************************************************************************
+    * CPU Registers
+    ***************************************************************************/
     // These will probably be interacted with in hex
-    uint16_t programCounter = 0x0;
+    uint16_t programCounter = 0x0000;
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
     // 0x0100
     uint8_t stackPointer = 0xFF;
-    int8_t accumulator = 0x0;
-    int8_t X = 0x0;
-    int8_t Y = 0x0;
+    int8_t accumulator = 0x00;
+    int8_t X = 0x00;
+    int8_t Y = 0x00;
 
     // This will probably be interacted with using bitwise operations
     uint8_t status = 0x00;//0x34;
 
-    int8_t memory [0x10000] = {};
+    // I think we're just going to leave the opcode here when we decode it
+    // instead of shunting it of to another "register" because at this high of a
+    // level that serves no purpose
+    uint8_t MDR; // Memory Data Register
 
-    // TODO: Will probably end up returning some kind of error code
+    // We can just think of this as where the opcode goes to be decoded, works
+    // well enough since this is the decoded opcode
+    voidFunc instructionRegister;
+
+    /***************************************************************************
+    * Mapped memory
+    ***************************************************************************/
+    uint8_t memory [0x10000] = {};
+
+    /***************************************************************************
+    * Runs the emulated CPU
+    ***************************************************************************/
     void run( std::ifstream &ROMImage );
 
-    void fetch();
-    void decode();
-    void execute();
+    /***************************************************************************
+    * CPU cycle
+    ***************************************************************************/
+    inline int8_t fetch();
+    inline voidFunc decode();
+    inline void execute();
 
+    /***************************************************************************
+    * Status handlers
+    ***************************************************************************/
     void updateNegative();
     // TODO: This has opcodes
     void updateOverflow( int8_t oldAccumulator );
@@ -56,20 +87,33 @@ class CPUClass
     void updateZero();
     void updateCarry( int8_t oldAccumulator );
 
+    /***************************************************************************
+    * Handle addressing mode operand resolution
+    ***************************************************************************/
+    inline int8_t immediate();
+    uint16_t zeroPage( IndexingMode mode );
+    uint16_t absolute( IndexingMode mode );
+    uint16_t indirect( IndexingMode mode );
+    // We may need one for relative, but I don't think so
+    int8_t retrieveIndexOffset( IndexingMode mode );
+
 
     // Now the real question, are all opcodes just methods of this class?
     // Probably. That's a lot of methods. . . Also are they inline?
 
-    // CPU OpCode methods
-    // TODO: Will probably end up returning some kind of error code
-    void ADC_Immediate();   // $69
-    void ADC_Zero_Page();   // $65
-    void ADC_Zero_Page_X(); // $75
-    void ADC_Absolute();    // $6D
-    void ADC_Absolute_X();  // $7D
-    void ADC_Absolute_Y();  // $79
-    void ADC_Indirect_X();  // $61
-    void ADC_Indirect_Y();  // $71
+    /***************************************************************************
+    * CPU OpCode methods
+    ***************************************************************************/
+    // TODO: Maybe these return an int indicating how many cycles they are
+    // supposed to take?
+    void ADCImmediate(); // $69
+    void ADCZeroPage();  // $65
+    void ADCZeroPageX(); // $75
+    void ADCAbsolute();  // $6D
+    void ADCAbsoluteX(); // $7D
+    void ADCAbsoluteY(); // $79
+    void ADCIndirectX(); // $61
+    void ADCIndirectY(); // $71
 };
 
 #endif

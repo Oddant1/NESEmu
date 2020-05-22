@@ -3,7 +3,7 @@ OBJECTS = NESEmu.o CPU.o
 # The executable file that will be created at the end
 EXEC = NESEmu.out
 # The flags to use for compilation
-FLAGS = -Wall
+FLAGS = -g -Wall
 # The code compiler to use for compilation
 CC = g++
 
