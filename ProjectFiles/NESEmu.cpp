@@ -6,10 +6,16 @@
 
 int main( int argc, char* argv[] )
 {
+    auto begin = std::chrono::high_resolution_clock::now();
     CPUClass CPU = CPUClass();
 
     std::ifstream ROMImage( argv[1], std::ios::binary );
     CPU.run( ROMImage );
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end-begin).count();
+
+    std::cout << "Duration: " << duration << std::endl;
 
     std::bitset<8> stat( CPU.status );
 
@@ -25,6 +31,8 @@ int main( int argc, char* argv[] )
     {
         std::cout << int( CPU.memory[ i ] ) << std::endl;
     }
+
+
 
     return 0;
 }

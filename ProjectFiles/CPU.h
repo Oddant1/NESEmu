@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 #include <fstream>
+#include <chrono>
+#include <time.h>
 
-typedef int ( *voidFunc )();
+const long CYCLE_TIME_N_SEC = 558L;
 
 // TODO: Verify correct endianness
 enum SetStatus
@@ -31,6 +33,12 @@ class CPUClass
     // TODO: Need to make the CPU keep time somehow
     // Very much subject to change
     public:
+
+    // Function pointer for opcode methods
+    typedef void ( CPUClass::*voidFunc )();
+
+    // Number of CPU cylces the current opcode should take
+    int numCycles;
 
     /***************************************************************************
     * CPU Registers
@@ -59,7 +67,7 @@ class CPUClass
     /***************************************************************************
     * Mapped memory
     ***************************************************************************/
-    uint8_t memory [0x10000] = {};
+    uint8_t memory [ 0x10000 ] = {};
 
     /***************************************************************************
     * Runs the emulated CPU
@@ -104,8 +112,9 @@ class CPUClass
     /***************************************************************************
     * CPU OpCode methods
     ***************************************************************************/
-    // TODO: Maybe these return an int indicating how many cycles they are
-    // supposed to take?
+
+    void ADC();
+
     void ADCImmediate(); // $69
     void ADCZeroPage();  // $65
     void ADCZeroPageX(); // $75
@@ -114,6 +123,10 @@ class CPUClass
     void ADCAbsoluteY(); // $79
     void ADCIndirectX(); // $61
     void ADCIndirectY(); // $71
+
+    voidFunc opCodeArray[ 256 ] = {
+
+    };
 };
 
 #endif
