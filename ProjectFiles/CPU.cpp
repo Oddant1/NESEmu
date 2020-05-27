@@ -25,15 +25,39 @@ void CPUClass::run( std::ifstream &ROMImage )
     // TODO: This is very much a "for now" roughup of finding which opcode to use.
     // As stated elsewhere we want the final method of finding a funciton to be
     // based on some kind of lookup table probably
-    auto start = std::chrono::high_resolution_clock::now();
+    auto start = std::chrono::high_resolution_clock::now()
+{
+
+}
+
     for( int i = 0; i < 184; i++ )
     {
-        MDR = fetch();
-        instructionRegister = decode();
-        execute();
+        MDR = fetch()
+{
 
-        auto current = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>( current - start ).count();
+}
+
+        instructionRegister = decode()
+{
+
+}
+
+        execute()
+{
+
+}
+
+
+        auto current = std::chrono::high_resolution_clock::now()
+{
+
+}
+
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>( current - start ).count()
+{
+
+}
+
 
         waitTime.tv_nsec = totalCycles * CYCLE_TIME_N_SEC - duration;
         if( waitTime.tv_nsec > 0 )
@@ -61,7 +85,11 @@ inline CPUClass::voidFunc CPUClass::decode()
 
 inline void CPUClass::execute()
 {
-    ( this->*instructionRegister )();
+    ( this->*instructionRegister )()
+{
+
+}
+
 }
 
 void CPUClass::updateNegative()
@@ -229,942 +257,344 @@ void CPUClass::ADC()
 
     accumulator += MDR;
 
-    updateNegative();
+    updateNegative()
+{
+
+}
+
     updateOverflow( oldAccumulator );
-    updateZero();
+    updateZero()
+{
+
+}
+
     updateCarry( oldAccumulator );
 }
 
-void CPUClass::ADCImmediate()
+// Bitwise anding
+void AND()
 {
-    totalCycles += 2;
-    MDR = immediate();
-    ADC();
-}
-
-void CPUClass::ADCZeroPage()
-{
-    totalCycles += 3;
-    MDR = memory[ zeroPage() ];
-    ADC();
-}
-
-void CPUClass::ADCZeroPageX()
-{
-    totalCycles += 4;
-    MDR = memory[ zeroPage( USE_X ) ];
-    ADC();
-}
-
-void CPUClass::ADCAbsolute()
-{
-    totalCycles += 4;
-    MDR = memory[ absolute() ];
-    ADC();
-}
-
-void CPUClass::ADCAbsoluteX()
-{
-    totalCycles += 4;
-    MDR = memory[ absolute( USE_X ) ];
-    ADC();
-}
-
-void CPUClass::ADCAbsoluteY()
-{
-    totalCycles += 4;
-    MDR = memory[ absolute( USE_Y ) ];
-    ADC();
-}
-
-void CPUClass::ADCIndirectX()
-{
-    totalCycles += 6;
-    MDR = memory[ indirect( USE_X ) ];
-    ADC();
-}
-
-void CPUClass::ADCIndirectY()
-{
-    totalCycles += 5;
-    MDR = memory[ indirect( USE_Y ) ];
-    ADC();
-}
-
-// Bitwise anding opcodes
-void CPUClass::AND()
-{
-    accumulator &= MDR;
-
-    updateNegative();
-    updateZero();
-}
-
-void CPUClass::ANDImmediate()
-{
-    totalCycles += 2;
-    MDR = immediate();
-    AND();
-}
-
-void CPUClass::ANDZeroPage()
-{
-    totalCycles += 3;
-    MDR = memory[ zeroPage() ];
-    AND();
-}
-
-void CPUClass::ANDZeroPageX()
-{
-    totalCycles += 4;
-    MDR = memory[ zeroPage( USE_X ) ];
-    AND();
-}
-
-void CPUClass::ANDAbsolute()
-{
-    totalCycles += 4;
-    MDR = memory[ absolute() ];
-    AND();
-}
-
-void CPUClass::ANDAbsoluteX()
-{
-    totalCycles += 4;
-    MDR = memory[ absolute( USE_X ) ];
-    AND();
-}
-
-void CPUClass::ANDAbsoluteY()
-{
-    totalCycles += 4;
-    MDR = memory[ absolute( USE_Y ) ];
-    AND();
-}
-
-void CPUClass::ANDIndirectX()
-{
-    totalCycles += 6;
-    MDR = memory[ indirect( USE_X ) ];
-    AND();
-}
-
-void CPUClass::ANDIndirectY()
-{
-    totalCycles += 5;
-    MDR = memory[ indirect( USE_Y ) ];
-    AND();
-}
-
-// Left shift opcodes
-void CPUClass::ASL()
-{
-    int8_t oldMDR = MDR;
-
-    MDR << 1;
-
-    updateNegative();
-    updateZero();
-    updateCarry( oldMDR );
-}
-
-// TODO: This is a bit gross
-void CPUClass::ASLAcc()
-{
-    int8_t oldAccumulator = accumulator;
-
-    totalCycles += 2;
-    accumulator << 1;
-
-    updateNegative();
-    updateZero();
-    updateCarry( oldAccumulator );
-}
-
-void CPUClass::ASLZeroPage()
-{
-    uint16_t address = zeroPage();
-
-    totalCycles += 5;
-    MDR = memory[ address ];
-    ASL();
-    memory[ address ] = MDR;
-}
-
-void CPUClass::ASLZeroPageX()
-{
-    uint16_t address = zeroPage( USE_X );
-
-    totalCycles += 6;
-    MDR = memory[ address ];
-    ASL();
-    memory[ address ] = MDR;
-}
-
-void CPUClass::ASLAbsolute()
-{
-    uint16_t address = absolute();
-
-    totalCycles += 6;
-    MDR = memory[ address ];
-    ASL();
-    memory[ address ] = MDR;
-}
-
-void CPUClass::ASLAbsoluteX()
-{
-    uint16_t address = zeroPage( USE_X );
-
-    totalCycles += 7;
-    MDR = memory[ address ];
-    ASL();
-    memory[ address ] = MDR;
-}
-
-// Bit test opcodes
-void CPUClass::BIT()
-{
-
-}
-
-void CPUClass::BITZeroPage()
-{
-
-}
-
-void CPUClass::BITAbsolute()
-{
-
-}
-
-// Branching opcodes
-void CPUClass::BRANCH()
-{
-
-}
-
-void CPUClass::BPL()
-{
-
-}
-
-void CPUClass::BMI()
-{
-
-}
-
-void CPUClass::BVC()
-{
-
-}
-
-void CPUClass::BVS()
-{
-
-}
-
-void CPUClass::BCC()
-{
-
-}
-
-void CPUClass::BCS()
-{
-
-}
-
-void CPUClass::BNE()
-{
-
-}
-
-void CPUClass::BEQ()
-{
-
-}
-
-// Break opcodes
-void CPUClass::BRK()
-{
-
-}
-
-// Comparing opcodes
-void CPUClass::CMP( UseRegister compare )
-{
-
-}
-
-void CPUClass::CMPImmediate()
-{
-
-}
-
-void CPUClass::CMPZeroPage()
-{
-
-}
-
-void CPUClass::CMPZeroPageX()
-{
-
-}
-
-void CPUClass::CMPAbsolute()
-{
-
-}
-
-void CPUClass::CMPAbsoluteX()
-{
-
-}
-
-void CPUClass::CMPAbsoluteY()
-{
-
-}
-
-void CPUClass::CMPIndirectX()
-{
-
-}
-
-void CPUClass::CMPIndirectY()
-{
-
-}
-
-void CPUClass::CPXImmediate()
-{
 
 }
 
-void CPUClass::CPXZeroPage()
-{
-
-}
-
-void CPUClass::CPXAbsolute()
-{
-
-}
-
-void CPUClass::CPYImmediate()
-{
-
-}
-
-void CPUClass::CPYZeroPage()
-{
-
-}
-
-void CPUClass::CPYAbsolute()
-{
-
-}
-
-// Decrementing opcodes
-void CPUClass::DEC()
-{
-
-}
-
-void CPUClass::DECZeroPage()
-{
-
-}
-
-void CPUClass::DECZeroPageX()
-{
-
-}
-
-void CPUClass::DECAbsolute()
-{
-
-}
-
-void CPUClass::DECAbsoluteX()
-{
-
-}
-
-// Exclusive bitwise or opcodes
-void CPUClass::EOR()
-{
-
-}
-
-void CPUClass::EORImmediate()
-{
-
-}
-
-void CPUClass::EORZeroPage()
-{
-
-}
-
-void CPUClass::EORZeroPageX()
-{
-
-}
-
-void CPUClass::EORAbsolute()
-{
-
-}
-
-void CPUClass::EORAbsoluteX()
-{
-
-}
-
-void CPUClass::EORAbsoluteY()
-{
-
-}
-
-void CPUClass::EORIndirectX()
-{
-
-}
-
-void CPUClass::EORIndirectY()
-{
-
-}
-
-// Flag Setting Opcodes
-void CPUClass::CLC()
-{
-    totalCycles += 2;
-    status &= ~SET_CARRY;
-}
-
-void CPUClass::SEC()
-{
-    totalCycles += 2;
-    status |= SET_CARRY;
-}
-
-void CPUClass::CLI()
-{
-    totalCycles += 2;
-    status &= ~SET_INTERRUPT_DISABLE;
-}
-
-void CPUClass::SEI()
-{
-    totalCycles += 2;
-    status |= SET_INTERRUPT_DISABLE;
-}
-
-void CPUClass::CLV()
-{
-    totalCycles += 2;
-    status &= ~SET_OVERFLOW;
-}
-
-void CPUClass::CLD()
-{
-    totalCycles += 2;
-    status &= ~SET_DECIMAL;
-}
-
-void CPUClass::SED()
-{
-    totalCycles += 2;
-    status |= SET_DECIMAL;
-}
-
-// Incrementing opcodes
-void CPUClass::INC()
-{
-
-}
-
-void CPUClass::INCZeroPage()
-{
-
-}
 
-void CPUClass::INCZeroPageX()
+// Left shift
+void ASL()
 {
 
 }
 
-void CPUClass::INCAbsolute()
-{
-
-}
-
-void CPUClass::INCAbsoluteX()
-{
-
-}
-
-// Jumping opcodes
-void CPUClass::JMP()
-{
-
-}
-
-void CPUClass::JMPAbsolute()
-{
-
-}
 
-void CPUClass::JMPIndirect()
+// Bit test
+void BIT()
 {
 
 }
 
-void CPUClass::JSR()
-{
-
-}
 
-// Loading opcodes
-void CPUClass::LOAD( UseRegister destination )
+// Branching
+void BPL()
 {
 
 }
 
-void CPUClass::LDAImmediate()
+void BMI()
 {
 
 }
 
-void CPUClass::LDAZeroPage()
+void BVC()
 {
 
 }
 
-void CPUClass::LDAZeroPageX()
+void BVS()
 {
 
 }
 
-void CPUClass::LDAAbsolute()
+void BCC()
 {
 
 }
 
-void CPUClass::LDAAbsoluteX()
+void BCS()
 {
 
 }
 
-void CPUClass::LDAAbsoluteY()
+void BNE()
 {
 
 }
 
-void CPUClass::LDAIndirectX()
+void BEQ()
 {
 
 }
 
-void CPUClass::LDAIndirectY()
-{
-
-}
 
-void CPUClass::LDXImmediate()
+// Break
+void BRK()
 {
 
 }
 
-void CPUClass::LDXZeroPage()
-{
-
-}
 
-void CPUClass::LDXZeroPageY()
+// Comparing
+void CMP()
 {
 
 }
 
-void CPUClass::LDXAbsolute()
+void CPX()
 {
 
 }
 
-void CPUClass::LDXAbsoluteY()
+void CPY()
 {
 
 }
-
-void CPUClass::LDYImmediate()
-{
 
-}
 
-void CPUClass::LDYZeroPage()
+// Decrementing
+void DEC()
 {
 
 }
-
-void CPUClass::LDYZeroPageX()
-{
 
-}
 
-void CPUClass::LDYAbsolute()
+// Exclusive bitwise or
+void EOR()
 {
 
 }
-
-void CPUClass::LDYAbsoluteX()
-{
 
-}
 
-// Right shift instructions
-void CPUClass::LSR()
+// Flag Setting
+void CLC()
 {
 
 }
 
-void CPUClass::LSRAcc()
+void SEC()
 {
 
 }
 
-void CPUClass::LSRZeroPage()
+void CLI()
 {
 
 }
 
-void CPUClass::LSRZeroPageX()
+void SEI()
 {
 
 }
 
-void CPUClass::LSRAbsolute()
+void CLV()
 {
 
 }
 
-void CPUClass::LSRAbsoluteX()
+void CLD()
 {
 
 }
 
-// NOTHNG NOP has so many slots
-void CPUClass::NOP()
+void SED()
 {
 
 }
 
-// Bitwise or opcodes
-void CPUClass::ORA()
-{
-
-}
 
-void CPUClass::ORAImmediate()
+// Incrementing
+void INC()
 {
 
 }
 
-void CPUClass::ORAZeroPage()
-{
-
-}
 
-void CPUClass::ORAZeroPageX()
+// Jumping
+void JMP()
 {
 
 }
 
-void CPUClass::ORAAbsolute()
+void JSR()
 {
 
 }
 
-void CPUClass::ORAAbsoluteX()
-{
-
-}
 
-void CPUClass::ORAAbsoluteY()
+// Loading
+void LDA()
 {
 
 }
 
-void CPUClass::ORAIndirectX()
+void LDX()
 {
 
 }
 
-void CPUClass::ORAIndirectY()
+void LDY()
 {
 
 }
 
-// Register instruction opcodes
-void CPUClass::TAX()
-{
-
-}
 
-void CPUClass::TXA()
+// Left shift
+void LSR()
 {
 
 }
-
-void CPUClass::DEX()
-{
 
-}
 
-void CPUClass::INX()
+// NOTHNG
+void NOP()
 {
 
 }
-
-void CPUClass::TAY()
-{
 
-}
 
-void CPUClass::TYA()
+// Bitwise or
+void ORA()
 {
 
 }
-
-void CPUClass::DEY()
-{
 
-}
 
-void CPUClass::INY()
+// Register instructions
+void TAX()
 {
 
 }
 
-// Rotate left opcodes
-void CPUClass::ROL()
+void TXA()
 {
 
 }
 
-void CPUClass::ROLAcc()
+void DEX()
 {
 
 }
 
-void CPUClass::ROLZeroPage()
+void INX()
 {
 
 }
 
-void CPUClass::ROLZeroPageX()
+void TAY()
 {
 
 }
 
-void CPUClass::ROLAbsolute()
+void TYA()
 {
 
 }
 
-void CPUClass::ROLAbsoluteX()
+void DEY()
 {
 
 }
 
-// Rotate right opcodes
-void CPUClass::ROR()
+void INY()
 {
 
 }
 
-void CPUClass::RORAcc()
-{
-
-}
 
-void CPUClass::RORZeroPage()
+// Rotate left
+void ROL()
 {
 
 }
 
-void CPUClass::RORZeroPageX()
-{
-
-}
 
-void CPUClass::RORAbsolute()
+// Rotate right
+void ROR()
 {
 
 }
 
-void CPUClass::RORAbsoluteX()
-{
-
-}
 
 // Return from interrupt
-void CPUClass::RTI()
+void RTI()
 {
 
 }
+
 
 // Return from subroutine
-void CPUClass::RTS()
+void RTS()
 {
 
 }
 
-// Subtract opcodes
-void CPUClass::SBC()
+
+// Subtract
+void SBC()
 {
 
 }
 
-void CPUClass::SBCImmediate()
+
+// Store
+void STA()
 {
 
 }
 
-void CPUClass::SBCZeroPage()
+void STX()
 {
 
 }
 
-void CPUClass::SBCZeroPageX()
+void STY()
 {
 
 }
 
-void CPUClass::SBCAbsolute()
+
+// Not 100% sure what the difference is between this and NOP
+void STP()
 {
 
 }
 
-void CPUClass::SBCAbsoluteX()
+
+// Stack instructions
+void TXS()
 {
 
 }
 
-void CPUClass::SBCAbsoluteY()
+void TSX()
 {
 
 }
 
-void CPUClass::SBCIndirectX()
+void PHA()
 {
 
 }
 
-void CPUClass::SBCIndirectY()
+void PLA()
 {
 
 }
 
-// Store opcodes
-void CPUClass::STORE( UseRegister storeFrom )
+void PHP()
 {
 
 }
 
-void CPUClass::STAZeroPage()
+void PLP()
 {
 
 }
 
-void CPUClass::STAZeroPageX()
-{
-
-}
-
-void CPUClass::STAAbsolute()
-{
-
-}
-
-void CPUClass::STAAbsoluteX()
-{
-
-}
-
-void CPUClass::STAAbsoluteY()
-{
-
-}
-
-void CPUClass::STAIndirectX()
-{
-
-}
-
-void CPUClass::STAIndirectY()
-{
-
-}
-
-void CPUClass::STXZeroPage()
-{
-
-}
-
-void CPUClass::STXZeroPageY()
-{
-
-}
-
-void CPUClass::STXAbsolute()
-{
-
-}
-
-void CPUClass::STYZeroPage()
-{
-
-}
-
-void CPUClass::STYZeroPageX()
-{
-
-}
-
-void CPUClass::STYAbsolute()
-{
-
-}
-
-// Stack instruction opcodes
-void CPUClass::TXS()
-{
-
-}
-
-void CPUClass::TSX()
-{
-
-}
-
-void CPUClass::PHA()
-{
-
-}
-
-void CPUClass::PLA()
-{
-
-}
-
-void CPUClass::PHP()
-{
-
-}
-
-void CPUClass::PLP()
-{
-
-}
