@@ -95,7 +95,7 @@ class CPUClass
     * Status handlers
     ***************************************************************************/
     void updateNegative();
-    // TODO: This has opcodes
+    // TODO: This has opcodes. This may also need to be opcode specific
     void updateOverflow( int8_t oldAccumulator );
     // TODO: This has opcodes
     void updateBreak();
@@ -103,7 +103,8 @@ class CPUClass
     void updateDecimal();
     void updateInterruptDisable();
     void updateZero();
-    // TODO: This has opcodes
+    // TODO: This has opcodes. This will probably need to be more opcode
+    // specific
     void updateCarry( int8_t oldAccumulator );
 
     /***************************************************************************

@@ -327,7 +327,7 @@ void CPUClass::AND()
 // Left shift
 void CPUClass::ASL()
 {
-    if( ( *MDR & 0x1000000 ) == 0x10000000 )
+    if( ( *MDR & 0x10000000 ) == 0x10000000 )
     {
         status |= SET_CARRY;
     }
@@ -479,23 +479,35 @@ void CPUClass::JSR()
 // Loading
 void CPUClass::LDA()
 {
-
+    accumulator = *MDR;
 }
 
 void CPUClass::LDX()
 {
-
+    X = *MDR;
 }
 
 void CPUClass::LDY()
 {
-
+    Y = *MDR;
 }
 
 // Left shift
 void CPUClass::LSR()
 {
+    if( ( *MDR & 0x00000001 ) == 0x00000001 )
+    {
+        status |= SET_CARRY;
+    }
+    else
+    {
+        status &= ~SET_CARRY;
+    }
 
+    *MDR >> 1;
+
+    updateNegative();
+    updateZero();
 }
 
 // NOTHNG
@@ -578,23 +590,30 @@ void CPUClass::RTS()
 // Subtract
 void CPUClass::SBC()
 {
+    int8_t oldAccumulator = accumulator;
 
+    accumulator -= *MDR;
+
+    updateNegative();
+    updateOverflow( oldAccumulator );
+    updateZero();
+    updateCarry( oldAccumulator );
 }
 
 // Store
 void CPUClass::STA()
 {
-
+    *MDR = accumulator;
 }
 
 void CPUClass::STX()
 {
-
+    *MDR = X;
 }
 
 void CPUClass::STY()
 {
-
+    *MDR = Y;
 }
 
 // Not 100% sure what the difference is between this and NOP
