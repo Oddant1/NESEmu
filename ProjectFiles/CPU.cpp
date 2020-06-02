@@ -18,9 +18,6 @@ void CPUClass::run( std::ifstream &ROMImage )
     // this, and I just haven't read that deep into the hardware yet
     ROMImage.read( ( char * )memory, 368 );
 
-    // TODO: This is very much a "for now" roughup of finding which opcode to use.
-    // As stated elsewhere we want the final method of finding a funciton to be
-    // based on some kind of lookup table probably
     for( int i = 0; i < 184; i++ )
     {
         // auto begin = std::chrono::high_resolution_clock::now()
