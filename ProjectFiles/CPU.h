@@ -35,6 +35,8 @@ class CPUClass
     // Very much subject to change
     public:
 
+    static const int cyclesPerFrame = 1790000 / 60;
+
     // Function pointer for opcode methods
     typedef void ( CPUClass::*voidFunc )();
 
@@ -44,6 +46,7 @@ class CPUClass
     // worry about this thing wrapping around. Like several hundred thousand
     // years
     unsigned long long int totalCycles;
+    int cyclesRemaining;
 
     /***************************************************************************
     * CPU Registers
@@ -63,13 +66,12 @@ class CPUClass
     // I think we're just going to leave the opcode here when we decode it
     // instead of shunting it of to another "register" because at this high of a
     // level that serves no purpose
-    uint8_t MDR; // Memory Data Register
+    uint8_t* MDR; // Memory Data Register
 
     // We can just think of this as where the opcode goes to be decoded, works
     // well enough since this is the decoded opcode
-    voidFunc instructionRegister = &CPUClass::DECAbsolute;
-
-    // void ( CPUClass::*foo )() = DECAbsolute;
+    voidFunc instruction;
+    voidFunc addressMode;
 
     /***************************************************************************
     * Mapped memory
@@ -84,8 +86,9 @@ class CPUClass
     /***************************************************************************
     * CPU cycle
     ***************************************************************************/
-    inline int8_t fetch();
-    inline voidFunc decode();
+    inline void fetch();
+    inline void decodeAddr();
+    inline void decodeOP();
     inline void execute();
 
     /***************************************************************************
@@ -106,16 +109,39 @@ class CPUClass
     /***************************************************************************
     * Handle addressing mode operand resolution
     ***************************************************************************/
-    inline int8_t immediate();
-    uint16_t zeroPage( UseRegister mode );
-    uint16_t absolute( UseRegister mode );
-    uint16_t indirect( UseRegister mode );
-    // We may need one for relative, but I don't think so
-    int8_t retrieveIndexOffset( UseRegister mode );
+    // Absolute
+    void absolute( UseRegister mode );
+    void abs();
+    void abX();
+    void abY();
 
+    // Indirect
+    void indirect( UseRegister mode );
+    void ind();
+    void inX();
+    void inY();
 
-    // Now the real question, are all opcodes just methods of this class?
-    // Probably. That's a lot of methods. . . Also are they inline?
+    // Zero Page
+    void zeroPage( UseRegister mode );
+    void zer();
+    void zeX();
+    void zeY();
+
+    // Immediate: Stupid simple
+    void imm();
+
+    // Relative
+    void rel();
+
+    // These three are formalities
+    // Implied: This does nothing
+    void imp();
+
+    // Accumulator: This does nothing
+    void acc();
+
+    // None: This literally does nothing
+    void non();
 
     /***************************************************************************
     * CPU OpCode methods
@@ -219,7 +245,8 @@ class CPUClass
     void STX();
     void STY();
 
-    // Not 100% sure what the difference is between this and NOP
+    // Not 100% sure what the difference is between this and NOP. NOP seems to
+    // be a formalized opcode where this is a placeholder
     void STP();
 
     // Stack instructions
@@ -271,7 +298,7 @@ class CPUClass
         &CPUClass::BCC, &CPUClass::STA, &CPUClass::STP, nullptr,
         &CPUClass::STY, &CPUClass::STA, &CPUClass::STX, nullptr,
         &CPUClass::TYA, &CPUClass::STA, &CPUClass::TXS, nullptr,
-        nullptr       , &CPUClass::STA, nullptr       ,nullptr,
+        nullptr       , &CPUClass::STA, nullptr       , nullptr,
         &CPUClass::LDY, &CPUClass::LDA, &CPUClass::LDX, nullptr,
         &CPUClass::LDY, &CPUClass::LDA, &CPUClass::LDX, nullptr,
         &CPUClass::TAY, &CPUClass::LDA, &CPUClass::TAX, nullptr,
@@ -300,7 +327,70 @@ class CPUClass
 
     voidFunc memoryAccessArray[ 256 ] =
     {
-        // TODO: Fill this out
+        &CPUClass::imp, &CPUClass::inX, &CPUClass::non, &CPUClass::inX,
+        &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::acc, &CPUClass::imm,
+        &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
+        &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
+        &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::abY,
+        &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
+        &CPUClass::abs, &CPUClass::inX, &CPUClass::non, &CPUClass::inX,
+        &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
+        &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
+        &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::abY,
+        &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
+        &CPUClass::imp, &CPUClass::inX, &CPUClass::non, &CPUClass::inX,
+        &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
+        &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
+        &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::abY,
+        &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
+        &CPUClass::imp, &CPUClass::inX, &CPUClass::non, &CPUClass::inX,
+        &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::ind, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
+        &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
+        &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::inY,
+        &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
+        &CPUClass::imm, &CPUClass::inX, &CPUClass::imm, &CPUClass::inX,
+        &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
+        &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
+        &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeY, &CPUClass::zeY,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imm, &CPUClass::abY,
+        &CPUClass::abX, &CPUClass::abX, &CPUClass::abY, &CPUClass::abY,
+        &CPUClass::imm, &CPUClass::inX, &CPUClass::imm, &CPUClass::inX,
+        &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
+        &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
+        &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeY, &CPUClass::zeY,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::abY,
+        &CPUClass::abX, &CPUClass::abX, &CPUClass::abY, &CPUClass::abY,
+        &CPUClass::imm, &CPUClass::inX, &CPUClass::imm, &CPUClass::inX,
+        &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
+        &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
+        &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::abY,
+        &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
+        &CPUClass::imm, &CPUClass::inX, &CPUClass::imm, &CPUClass::inX,
+        &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
+        &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
+        &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::abY,
+        &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX
     };
 };
 

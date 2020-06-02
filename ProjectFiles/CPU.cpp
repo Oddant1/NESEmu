@@ -1,13 +1,9 @@
 #include "CPU.h"
+#include <iostream>
 
-// This will be our main loop. I think the main function will just init then
 // start running here
 void CPUClass::run( std::ifstream &ROMImage )
 {
-    struct timespec waitTime;
-    waitTime.tv_sec = 0;
-    waitTime.tv_nsec = 0;
-
     // TODO: So I've been messing around with trying to keep time on some tiny
     // toy programs, and I think it's going to have to go something like this.
     // 1. Complete necessary computation for one frame
@@ -25,73 +21,44 @@ void CPUClass::run( std::ifstream &ROMImage )
     // TODO: This is very much a "for now" roughup of finding which opcode to use.
     // As stated elsewhere we want the final method of finding a funciton to be
     // based on some kind of lookup table probably
-    auto start = std::chrono::high_resolution_clock::now()
-{
-
-}
-
     for( int i = 0; i < 184; i++ )
     {
-        MDR = fetch()
-{
-
-}
-
-        instructionRegister = decode()
-{
-
-}
-
-        execute()
-{
-
-}
-
-
-        auto current = std::chrono::high_resolution_clock::now()
-{
-
-}
-
-        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>( current - start ).count()
-{
-
-}
-
-
-        waitTime.tv_nsec = totalCycles * CYCLE_TIME_N_SEC - duration;
-        if( waitTime.tv_nsec > 0 )
-        {
-            nanosleep(&waitTime, NULL);
-        }
+        // auto begin = std::chrono::high_resolution_clock::now()
+        fetch();
+        // Decoding needs to be split into two stages
+        decodeAddr();
+        decodeOP();
+        execute();
     }
 }
 
-// I feel like this doesn't require seperate functions, but we'll see
-inline int8_t CPUClass::fetch()
+/*******************************************************************************
+* CPU cycle
+*******************************************************************************/
+inline void CPUClass::fetch()
 {
-    return memory[ programCounter++ ];
+    MDR = &( memory[ programCounter++ ] );
 }
 
-// I thought a lot about better ways of decoding the opcode based on looking at
-// this source https://wiki.nesdev.com/w/index.php/CPU_unofficial_opcodes
-// however, they all seemed like they would get complicated and messy. The
-// columns are MOSTLY all the same addressing mode, but there are exceptions.
-// The rows are just kind of a mess even looking at individual colors
-inline CPUClass::voidFunc CPUClass::decode()
+inline void CPUClass::decodeAddr()
 {
-    return opCodeArray[ MDR ];
+    addressMode = memoryAccessArray[ *MDR ];
+}
+
+inline void CPUClass::decodeOP()
+{
+    instruction = opCodeArray[ *MDR ];
 }
 
 inline void CPUClass::execute()
 {
-    ( this->*instructionRegister )()
-{
-
+    ( this->*addressMode )();
+    ( this->*instruction )();
 }
 
-}
-
+/*******************************************************************************
+* Status handlers
+*******************************************************************************/
 void CPUClass::updateNegative()
 {
     if( accumulator < 0 )
@@ -156,28 +123,34 @@ void CPUClass::updateCarry( int8_t oldAccumulator )
     }
 }
 
-inline int8_t CPUClass::immediate()
+/*******************************************************************************
+* Handle addressing mode operand resolution
+*******************************************************************************/
+// Absolute
+void CPUClass::absolute( UseRegister mode = NONE )
 {
-    return memory[ programCounter++ ];
-}
-
-uint16_t CPUClass::zeroPage( UseRegister mode = NONE )
-{
-    int8_t offset = retrieveIndexOffset( mode );
-
-    // The value is supposed to just wrap to stay on the zero page, so we don't
-    // need to handle overflows at all
-    return memory[ programCounter++ ] + offset;
-}
-
-uint16_t CPUClass::absolute( UseRegister mode = NONE )
-{
-    int16_t address;
-
-    int8_t offset = retrieveIndexOffset( mode );
+    uint8_t offset;
+    uint16_t address;
 
     uint8_t low = memory[ programCounter++ ];
     uint8_t hi = memory[ programCounter++ ];
+
+    totalCycles += 4;
+    cyclesRemaining -= 4;
+
+    switch( mode )
+    {
+        case USE_X:
+            offset = X;
+            break;
+
+        case USE_Y:
+            offset += Y;
+            break;
+
+        default:
+            offset = 0;
+    }
 
     low += offset;
 
@@ -191,63 +164,145 @@ uint16_t CPUClass::absolute( UseRegister mode = NONE )
     address = low;
     address += hi << 4;
 
-
-    return address;
+    MDR = &( memory[ address ] );
 }
 
-uint16_t CPUClass::indirect( UseRegister mode = NONE )
+void CPUClass::abs()
+{
+    absolute();
+}
+
+void CPUClass::abX()
+{
+    absolute( USE_X );
+}
+
+void CPUClass::abY()
+{
+    absolute( USE_Y );
+}
+
+// Indirect
+void CPUClass::indirect( UseRegister mode = NONE )
 {
     int8_t low;
     int8_t hi;
 
-    int16_t full = 0x0000;
+    uint16_t address;
 
-    switch (mode)
+    switch( mode )
     {
         case USE_X:
             low = memory[ programCounter++ ];
             // This is supposed to just wrap
             low += X;
 
-            full = memory[ low++ ];
-            full += memory[ low ] << 4;
+            address = memory[ low++ ];
+            address += memory[ low ] << 4;
 
-            return memory[ full ];
         case USE_Y:
             low = memory[ programCounter++ ];
 
-            full = memory[ low++ ];
-            full += memory[ low ] << 4;
-            full += Y;
+            address = memory[ low++ ];
+            address += memory[ low ] << 4;
+            address += Y;
 
-            return memory[ full ];
         case NONE:
-            full = memory[ programCounter++ ];
-            full += memory[ programCounter++ ] << 4;
+            address = memory[ programCounter++ ];
+            address += memory[ programCounter++ ] << 4;
 
-            low = memory[ full++ ];
-            hi = memory[ full ];
+            low = memory[ address++ ];
+            hi = memory[ address ];
 
-            full = hi << 4;
-            full += low;
-
-            return memory[ full ];
+            address = hi << 4;
+            address += low;
     }
+
+    MDR = &( memory[ address ] );
 }
 
-int8_t  CPUClass::retrieveIndexOffset( UseRegister mode = NONE )
+void CPUClass::ind()
 {
+    indirect();
+}
+
+void CPUClass::inX()
+{
+    indirect( USE_X );
+}
+
+void CPUClass::inY()
+{
+    indirect( USE_Y );
+}
+
+// Zero Page
+void CPUClass::zeroPage( UseRegister mode = NONE )
+{
+    int8_t offset;
+
     switch( mode )
     {
         case USE_X:
-            return X;
+            offset = X;
+            break;
 
         case USE_Y:
-            return Y;
+            offset = Y;
+            break;
 
         default:
-            return 0x00;
+            offset = 0;
     }
+
+    // The value is supposed to just wrap to stay on the zero page, so we don't
+    // need to handle overflows at all
+    MDR = &( memory[ memory[ programCounter++ ] + offset ] );
+}
+
+void CPUClass::zer()
+{
+    zeroPage();
+}
+
+void CPUClass::zeX()
+{
+    zeroPage( USE_X );
+}
+
+void CPUClass::zeY()
+{
+    zeroPage( USE_Y );
+}
+
+// TODO: INVESTIDATE RETURN TYPES OF MEMORY RESOLVERS
+// This is kind of a formality so there is an entry into the addressmode decode
+// table for immediate opcodes
+void CPUClass::imm()
+{
+    MDR = &memory[ programCounter++ ];
+}
+
+void CPUClass::rel()
+{
+
+}
+
+void CPUClass::imp()
+{
+
+}
+
+void CPUClass::acc()
+{
+    // The operations that use the accumulator as an operand don't care if it's
+    // signed anyway
+    MDR = ( uint8_t* )&accumulator;
+}
+
+void CPUClass::non()
+{
+
 }
 
 // Adding opcodes
@@ -255,346 +310,329 @@ void CPUClass::ADC()
 {
     int8_t oldAccumulator = accumulator;
 
-    accumulator += MDR;
+    accumulator += *MDR;
 
-    updateNegative()
-{
-
-}
-
+    updateNegative();
     updateOverflow( oldAccumulator );
-    updateZero()
-{
-
-}
-
+    updateZero();
     updateCarry( oldAccumulator );
 }
 
 // Bitwise anding
-void AND()
+void CPUClass::AND()
 {
+    accumulator &= *MDR;
 
+    updateNegative();
+    updateZero();
 }
-
 
 // Left shift
-void ASL()
+void CPUClass::ASL()
 {
+    if( ( *MDR & 0x1000000 ) == 0x10000000 )
+    {
+        status |= SET_CARRY;
+    }
+    else
+    {
+        status &= ~SET_CARRY;
+    }
 
+    *MDR << 1;
+
+    updateNegative();
+    updateZero();
 }
-
 
 // Bit test
-void BIT()
+void CPUClass::BIT()
 {
 
 }
-
 
 // Branching
-void BPL()
+void CPUClass::BPL()
 {
 
 }
 
-void BMI()
+void CPUClass::BMI()
 {
 
 }
 
-void BVC()
+void CPUClass::BVC()
 {
 
 }
 
-void BVS()
+void CPUClass::BVS()
 {
 
 }
 
-void BCC()
+void CPUClass::BCC()
 {
 
 }
 
-void BCS()
+void CPUClass::BCS()
 {
 
 }
 
-void BNE()
+void CPUClass::BNE()
 {
 
 }
 
-void BEQ()
+void CPUClass::BEQ()
 {
 
 }
-
 
 // Break
-void BRK()
+void CPUClass::BRK()
 {
 
 }
-
 
 // Comparing
-void CMP()
+void CPUClass::CMP()
 {
 
 }
 
-void CPX()
+void CPUClass::CPX()
 {
 
 }
 
-void CPY()
+void CPUClass::CPY()
 {
 
 }
-
 
 // Decrementing
-void DEC()
+void CPUClass::DEC()
 {
 
 }
-
 
 // Exclusive bitwise or
-void EOR()
+void CPUClass::EOR()
 {
 
 }
-
 
 // Flag Setting
-void CLC()
+void CPUClass::CLC()
 {
 
 }
 
-void SEC()
+void CPUClass::SEC()
 {
 
 }
 
-void CLI()
+void CPUClass::CLI()
 {
 
 }
 
-void SEI()
+void CPUClass::SEI()
 {
 
 }
 
-void CLV()
+void CPUClass::CLV()
 {
 
 }
 
-void CLD()
+void CPUClass::CLD()
 {
 
 }
 
-void SED()
+void CPUClass::SED()
 {
 
 }
-
 
 // Incrementing
-void INC()
+void CPUClass::INC()
 {
 
 }
-
 
 // Jumping
-void JMP()
+void CPUClass::JMP()
 {
 
 }
 
-void JSR()
+void CPUClass::JSR()
 {
 
 }
-
 
 // Loading
-void LDA()
+void CPUClass::LDA()
 {
 
 }
 
-void LDX()
+void CPUClass::LDX()
 {
 
 }
 
-void LDY()
+void CPUClass::LDY()
 {
 
 }
-
 
 // Left shift
-void LSR()
+void CPUClass::LSR()
 {
 
 }
-
 
 // NOTHNG
-void NOP()
+void CPUClass::NOP()
 {
 
 }
-
 
 // Bitwise or
-void ORA()
+void CPUClass::ORA()
 {
 
 }
-
 
 // Register instructions
-void TAX()
+void CPUClass::TAX()
 {
 
 }
 
-void TXA()
+void CPUClass::TXA()
 {
 
 }
 
-void DEX()
+void CPUClass::DEX()
 {
 
 }
 
-void INX()
+void CPUClass::INX()
 {
 
 }
 
-void TAY()
+void CPUClass::TAY()
 {
 
 }
 
-void TYA()
+void CPUClass::TYA()
 {
 
 }
 
-void DEY()
+void CPUClass::DEY()
 {
 
 }
 
-void INY()
+void CPUClass::INY()
 {
 
 }
-
 
 // Rotate left
-void ROL()
+void CPUClass::ROL()
 {
 
 }
-
 
 // Rotate right
-void ROR()
+void CPUClass::ROR()
 {
 
 }
-
 
 // Return from interrupt
-void RTI()
+void CPUClass::RTI()
 {
 
 }
-
 
 // Return from subroutine
-void RTS()
+void CPUClass::RTS()
 {
 
 }
-
 
 // Subtract
-void SBC()
+void CPUClass::SBC()
 {
 
 }
-
 
 // Store
-void STA()
+void CPUClass::STA()
 {
 
 }
 
-void STX()
+void CPUClass::STX()
 {
 
 }
 
-void STY()
+void CPUClass::STY()
 {
 
 }
-
 
 // Not 100% sure what the difference is between this and NOP
-void STP()
+void CPUClass::STP()
 {
 
 }
-
 
 // Stack instructions
-void TXS()
+void CPUClass::TXS()
 {
 
 }
 
-void TSX()
+void CPUClass::TSX()
 {
 
 }
 
-void PHA()
+void CPUClass::PHA()
 {
 
 }
 
-void PLA()
+void CPUClass::PLA()
 {
 
 }
 
-void PHP()
+void CPUClass::PHP()
 {
 
 }
 
-void PLP()
+void CPUClass::PLP()
 {
 
 }
-
