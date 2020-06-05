@@ -54,14 +54,15 @@ class CPUClass
     // These will probably be interacted with in hex
     uint16_t programCounter = 0x0000;
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
-    // 0x0100. It starts at FD though... For some reason
+    // 0x0100. It's initialzed to FD though... For some reason. This is based
+    // on this source https://wiki.nesdev.com/w/index.php/CPU_ALL
     uint8_t stackPointer = 0xFD;
     int8_t accumulator = 0x00;
     int8_t X = 0x00;
     int8_t Y = 0x00;
 
     // This will probably be interacted with using bitwise operations
-    uint8_t status = 0x00;//0x34;
+    uint8_t status = 0x00; //0x34;
 
     // I think we're just going to leave the opcode here when we decode it
     // instead of shunting it of to another "register" because at this high of a
