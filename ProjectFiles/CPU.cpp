@@ -1,4 +1,8 @@
-#include "CPU.h"\
+#include "CPU.h"
+
+// TODO: I need to start thinking very seriously about how the program counter
+// and cycle counts are to be managed. I'm not sure my previous solutions are as
+// good as I previously thought
 
 // start running here
 void CPUClass::run( std::ifstream &ROMImage )
@@ -328,7 +332,7 @@ void CPUClass::AND()
 void CPUClass::ASL()
 {
     // This could be turned into a ternary, but I think it would be a gross one
-    if( ( ( *MDR ) & 0x10000000 ) == 0x10000000 )
+    if( ( ( *MDR ) & 0b10000000 ) == 0b10000000 )
     {
         status |= SET_CARRY;
     }
@@ -346,48 +350,97 @@ void CPUClass::ASL()
 // Bit test
 void CPUClass::BIT()
 {
+    if( accumulator & *MDR == 0b00000000 )
+    {
+        status |= SET_ZERO;
+    }
+    else
+    {
+        status &= ~SET_ZERO;
+    }
 
+    if( *MDR & 0b10000000 == 0b10000000 )
+    {
+        status |= SET_NEGATIVE;
+    }
+
+    if( *MDR & 0b01000000 == 0b01000000 )
+    {
+        status |= SET_OVERFLOW;
+    }
 }
 
 // Branching
+void CPUClass::Branch()
+{
+    // We need to caste the branch offset to a signed int
+    int8_t offset = ( int8_t )*MDR;
+
+    programCounter += offset;
+}
+
 void CPUClass::BPL()
 {
-
+    if( status & 0b10000000 == 0b00000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BMI()
 {
-
+    if( status & 0b10000000 == 0b10000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BVC()
 {
-
+    if( status & 0b01000000 == 0b00000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BVS()
 {
-
+    if( status & 0b01000000 == 0b01000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BCC()
 {
-
+    if( status & 0b00000001 == 0b00000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BCS()
 {
-
+    if( status & 0b00000001 == 0b00000001 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BNE()
 {
-
+    if( status & 0b00000010 == 0b00000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BEQ()
 {
-
+    if( status & 0b00000010 == 0b00000010 )
+    {
+        Branch();
+    }
 }
 
 // Break
@@ -519,7 +572,7 @@ void CPUClass::JMP()
 */
 void CPUClass::JSR()
 {
-    uint8_t lo = ( uint8_t )programCounter & 0x00001111;
+    uint8_t lo = ( uint8_t )programCounter & 0b00001111;
     uint8_t hi = ( uint8_t )programCounter >> 4;
 
     // hi then lo so lo comes off first
@@ -549,7 +602,7 @@ void CPUClass::LDY()
 void CPUClass::LSR()
 {
     // This could be turned into a ternary, but I think it would be a gross one
-    if( ( ( *MDR ) & 0x00000001 ) == 0x00000001 )
+    if( ( ( *MDR ) & 0b00000001 ) == 0b00000001 )
     {
         status |= SET_CARRY;
     }
@@ -623,15 +676,15 @@ void CPUClass::INY()
 /*
 * NOTE: The NES's CPU performs rotations using the carry. For instance:
 *
-* If we perform a rotate left on the value 0x10000000 with the carry not set
-* we will get 0x00000000 with a set carry. The 1 got rotated off the left into
+* If we perform a rotate left on the value 0b10000000 with the carry not set
+* we will get 0b00000000 with a set carry. The 1 got rotated off the left into
 * the carry, not bit 0, and the carry got rotated into bit 0.
 */
 // Rotate left
 void CPUClass::ROL()
 {
     // If the high bit is set it needs to be shifted into the carry later
-    bool carry = ( ( *MDR ) & 0x10000000 ) == 0x10000000;
+    bool carry = ( ( *MDR ) & 0b10000000 ) == 0b10000000;
 
     ( *MDR ) << 1;
 
@@ -651,7 +704,7 @@ void CPUClass::ROL()
 void CPUClass::ROR()
 {
     // If the low bit is set it needs to be shifted into the carry later
-    bool carry = ( ( *MDR ) & 0x00000001 ) == 0x00000001;
+    bool carry = ( ( *MDR ) & 0b00000001 ) == 0b00000001;
 
     ( *MDR ) >> 1;
 

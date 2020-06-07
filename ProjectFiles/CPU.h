@@ -164,6 +164,8 @@ class CPUClass
     void BIT();
 
     // Branching
+    void Branch();
+
     void BPL();
     void BMI();
     void BVC();
