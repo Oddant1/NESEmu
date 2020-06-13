@@ -19,9 +19,8 @@ void CPUClass::run( std::ifstream &ROMImage )
     // wanted to wait for 100 nanoseconds. The only question I have now is how
     // do we know a frame is done? And I suspect there is some way to determine
     // this, and I just haven't read that deep into the hardware yet
-    // TODO: How to I get this to read into memory where I want it
     ROMImage.seekg( 0x10, ROMImage.beg );
-    ROMImage.read( ( char* )memory, 0x6000 );
+    ROMImage.read( ( char* )( &memory[ 0x8000 ] ), 0x6000 );
 
     for( int i = 0; i < 184; i++ )
     {
@@ -40,7 +39,8 @@ void CPUClass::run( std::ifstream &ROMImage )
         // helps with JSR and RTS behavior as it is dependent on pushing and
         // popping the address of the last operand of the previous opcode. To do
         // this differently would break jump tables that are designed with that
-        // behavior in mind
+        // behavior in mind. I don't think we always want to inc though do we.
+        // Length one opcodes
         programCounter++;
     }
 }
