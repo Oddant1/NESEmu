@@ -52,6 +52,8 @@ class CPUClass
     * CPU Registers
     ***************************************************************************/
     // These will probably be interacted with in hex
+    // For test load all data into 0xC000 on. Should fit. Start PC at
+    // 0xC000
     uint16_t programCounter = 0x0000;
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
     // 0x0100. It's initialzed to FD though... For some reason. This is based

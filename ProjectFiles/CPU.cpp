@@ -19,7 +19,9 @@ void CPUClass::run( std::ifstream &ROMImage )
     // wanted to wait for 100 nanoseconds. The only question I have now is how
     // do we know a frame is done? And I suspect there is some way to determine
     // this, and I just haven't read that deep into the hardware yet
-    ROMImage.read( ( char * )memory, 368 );
+    // TODO: How to I get this to read into memory where I want it
+    ROMImage.seekg( 0x10, ROMImage.beg );
+    ROMImage.read( ( char* )memory, 0x6000 );
 
     for( int i = 0; i < 184; i++ )
     {
@@ -29,6 +31,17 @@ void CPUClass::run( std::ifstream &ROMImage )
         decodeAddr();
         decodeOP();
         execute();
+
+        // The PC is incremented here to more closely reflect the behavior of
+        // the hardware. According to http://www.6502.org/tutorials/6502opcodes.html#PC
+        // the PC should be on the last operand of the prior opcode until it is
+        // ready for the next opcode. We can't increment it at the top of the
+        // loop or we increment off of the first opcode, so we do it here. This
+        // helps with JSR and RTS behavior as it is dependent on pushing and
+        // popping the address of the last operand of the previous opcode. To do
+        // this differently would break jump tables that are designed with that
+        // behavior in mind
+        programCounter++;
     }
 }
 
@@ -133,7 +146,7 @@ void CPUClass::absolute( UseRegister mode = NONE )
     uint16_t address;
 
     uint8_t lo = memory[ programCounter++ ];
-    uint8_t hi = memory[ programCounter++ ];
+    uint8_t hi = memory[ programCounter ];
 
     totalCycles += 4;
     cyclesRemaining -= 4;
@@ -162,8 +175,10 @@ void CPUClass::absolute( UseRegister mode = NONE )
     }
 
     address = lo;
-    address += hi << 4;
+    address += hi << 8;
 
+    // TODO: This causes issues for jumping instructions. This returns a pointer
+    // to the value stored in that location. We want to jump to that location
     MDR = &( memory[ address ] );
 }
 
@@ -193,28 +208,28 @@ void CPUClass::indirect( UseRegister mode = NONE )
     switch( mode )
     {
         case USE_X:
-            lo = memory[ programCounter++ ];
+            lo = memory[ programCounter ];
             // This is supposed to just wrap
             lo += X;
 
             address = memory[ lo++ ];
-            address += memory[ lo ] << 4;
+            address += memory[ lo ] << 8;
 
         case USE_Y:
-            lo = memory[ programCounter++ ];
+            lo = memory[ programCounter ];
 
             address = memory[ lo++ ];
-            address += memory[ lo ] << 4;
+            address += memory[ lo ] << 8;
             address += Y;
 
         case NONE:
             address = memory[ programCounter++ ];
-            address += memory[ programCounter++ ] << 4;
+            address += memory[ programCounter ] << 8;
 
             lo = memory[ address++ ];
             hi = memory[ address ];
 
-            address = hi << 4;
+            address = hi << 8;
             address += lo;
     }
 
@@ -258,7 +273,7 @@ void CPUClass::zeroPage( UseRegister mode = NONE )
     // The value is supposed to just wrap to stay on the zero page, so we don't
     // need to handle overflows at all (if it didn't wrap it would hit the
     // stack)
-    MDR = &( memory[ memory[ programCounter++ ] + offset ] );
+    MDR = &( memory[ memory[ programCounter ] + offset ] );
 }
 
 void CPUClass::zer()
@@ -281,7 +296,7 @@ void CPUClass::zeY()
 // table for immediate opcodes
 void CPUClass::imm()
 {
-    MDR = &memory[ programCounter++ ];
+    MDR = &memory[ programCounter ];
 }
 
 void CPUClass::rel()
@@ -726,14 +741,14 @@ void CPUClass::RTI()
     status = memory[ --stackPointer ];
 
     programCounter = memory[ --stackPointer ];
-    programCounter += ( ( uint16_t )memory[ --stackPointer ] ) << 4;
+    programCounter += ( ( uint16_t )memory[ --stackPointer ] ) << 8;
 }
 
 // Return from subroutine
 void CPUClass::RTS()
 {
     programCounter = memory[ --stackPointer ];
-    programCounter += ( ( uint16_t )memory[ --stackPointer ] ) << 4;
+    programCounter += ( ( uint16_t )memory[ --stackPointer ] ) << 8;
 
     programCounter++;
 }
