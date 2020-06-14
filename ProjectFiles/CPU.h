@@ -69,7 +69,7 @@ class CPUClass
     // I think we're just going to leave the opcode here when we decode it
     // instead of shunting it of to another "register" because at this high of a
     // level that serves no purpose
-    uint8_t* MDR; // Memory Data Register
+    uint16_t MDR; // Memory Data Register
 
     // We can just think of this as where the opcode goes to be decoded, works
     // well enough since this is the decoded opcode
