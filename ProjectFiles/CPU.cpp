@@ -1,5 +1,8 @@
 #include "CPU.h"
-#include <iostream>
+
+// TODO: I need to start thinking very seriously about how the program counter
+// and cycle counts are to be managed. I'm not sure my previous solutions are as
+// good as I previously thought
 
 // start running here
 void CPUClass::run( std::ifstream &ROMImage )
@@ -16,11 +19,9 @@ void CPUClass::run( std::ifstream &ROMImage )
     // wanted to wait for 100 nanoseconds. The only question I have now is how
     // do we know a frame is done? And I suspect there is some way to determine
     // this, and I just haven't read that deep into the hardware yet
-    ROMImage.read( ( char * )memory, 368 );
+    ROMImage.seekg( 0x10, ROMImage.beg );
+    ROMImage.read( ( char* )( &memory[ 0xC000 ] ), 0x4000 );
 
-    // TODO: This is very much a "for now" roughup of finding which opcode to use.
-    // As stated elsewhere we want the final method of finding a funciton to be
-    // based on some kind of lookup table probably
     for( int i = 0; i < 184; i++ )
     {
         // auto begin = std::chrono::high_resolution_clock::now()
@@ -29,6 +30,18 @@ void CPUClass::run( std::ifstream &ROMImage )
         decodeAddr();
         decodeOP();
         execute();
+
+        // The PC is incremented here to more closely reflect the behavior of
+        // the hardware. According to http://www.6502.org/tutorials/6502opcodes.html#PC
+        // the PC should be on the last operand of the prior opcode until it is
+        // ready for the next opcode. We can't increment it at the top of the
+        // loop or we increment off of the first opcode, so we do it here. This
+        // helps with JSR and RTS behavior as it is dependent on pushing and
+        // popping the address of the last operand of the previous opcode. To do
+        // this differently would break jump tables that are designed with that
+        // behavior in mind. I don't think we always want to inc though do we.
+        // Length one opcodes
+        programCounter++;
     }
 }
 
@@ -37,17 +50,17 @@ void CPUClass::run( std::ifstream &ROMImage )
 *******************************************************************************/
 inline void CPUClass::fetch()
 {
-    MDR = &( memory[ programCounter++ ] );
+    MDR = memory[ programCounter ];
 }
 
 inline void CPUClass::decodeAddr()
 {
-    addressMode = memoryAccessArray[ *MDR ];
+    addressMode = memoryAccessArray[ MDR ];
 }
 
 inline void CPUClass::decodeOP()
 {
-    instruction = opCodeArray[ *MDR ];
+    instruction = opCodeArray[ MDR ];
 }
 
 inline void CPUClass::execute()
@@ -132,8 +145,8 @@ void CPUClass::absolute( UseRegister mode = NONE )
     uint8_t offset;
     uint16_t address;
 
-    uint8_t low = memory[ programCounter++ ];
-    uint8_t hi = memory[ programCounter++ ];
+    uint8_t lo = memory[ ++programCounter ];
+    uint8_t hi = memory[ ++programCounter ];
 
     totalCycles += 4;
     cyclesRemaining -= 4;
@@ -152,19 +165,21 @@ void CPUClass::absolute( UseRegister mode = NONE )
             offset = 0;
     }
 
-    low += offset;
+    lo += offset;
 
     // Check for carry
-    if( low < offset )
+    if( lo < offset )
     {
         hi++;
         totalCycles++;
     }
 
-    address = low;
-    address += hi << 4;
+    address = lo;
+    address += hi << 8;
 
-    MDR = &( memory[ address ] );
+    // TODO: This causes issues for jumping instructions. This returns a pointer
+    // to the value stored in that location. We want to jump to that location
+    MDR = address;
 }
 
 void CPUClass::abs()
@@ -185,7 +200,7 @@ void CPUClass::abY()
 // Indirect
 void CPUClass::indirect( UseRegister mode = NONE )
 {
-    int8_t low;
+    int8_t lo;
     int8_t hi;
 
     uint16_t address;
@@ -193,32 +208,32 @@ void CPUClass::indirect( UseRegister mode = NONE )
     switch( mode )
     {
         case USE_X:
-            low = memory[ programCounter++ ];
+            lo = memory[ ++programCounter ];
             // This is supposed to just wrap
-            low += X;
+            lo += X;
 
-            address = memory[ low++ ];
-            address += memory[ low ] << 4;
+            address = memory[ lo++ ];
+            address += memory[ lo ] << 8;
 
         case USE_Y:
-            low = memory[ programCounter++ ];
+            lo = memory[ ++programCounter ];
 
-            address = memory[ low++ ];
-            address += memory[ low ] << 4;
+            address = memory[ lo++ ];
+            address += memory[ lo ] << 8;
             address += Y;
 
         case NONE:
-            address = memory[ programCounter++ ];
-            address += memory[ programCounter++ ] << 4;
+            address = memory[ ++programCounter ];
+            address += memory[ ++programCounter ] << 8;
 
-            low = memory[ address++ ];
+            lo = memory[ address++ ];
             hi = memory[ address ];
 
-            address = hi << 4;
-            address += low;
+            address = hi << 8;
+            address += lo;
     }
 
-    MDR = &( memory[ address ] );
+    MDR = address;
 }
 
 void CPUClass::ind()
@@ -256,8 +271,9 @@ void CPUClass::zeroPage( UseRegister mode = NONE )
     }
 
     // The value is supposed to just wrap to stay on the zero page, so we don't
-    // need to handle overflows at all
-    MDR = &( memory[ memory[ programCounter++ ] + offset ] );
+    // need to handle overflows at all (if it didn't wrap it would hit the
+    // stack)
+    MDR = memory[ ++programCounter ] + offset;
 }
 
 void CPUClass::zer()
@@ -280,7 +296,7 @@ void CPUClass::zeY()
 // table for immediate opcodes
 void CPUClass::imm()
 {
-    MDR = &memory[ programCounter++ ];
+    MDR = ++programCounter;
 }
 
 void CPUClass::rel()
@@ -295,9 +311,7 @@ void CPUClass::imp()
 
 void CPUClass::acc()
 {
-    // The operations that use the accumulator as an operand don't care if it's
-    // signed anyway
-    MDR = ( uint8_t* )&accumulator;
+
 }
 
 void CPUClass::non()
@@ -310,7 +324,7 @@ void CPUClass::ADC()
 {
     int8_t oldAccumulator = accumulator;
 
-    accumulator += *MDR;
+    accumulator += memory[ MDR ];
 
     updateNegative();
     updateOverflow( oldAccumulator );
@@ -321,7 +335,7 @@ void CPUClass::ADC()
 // Bitwise anding
 void CPUClass::AND()
 {
-    accumulator &= *MDR;
+    accumulator &= memory[ MDR ];
 
     updateNegative();
     updateZero();
@@ -330,16 +344,33 @@ void CPUClass::AND()
 // Left shift
 void CPUClass::ASL()
 {
-    if( ( *MDR & 0x1000000 ) == 0x10000000 )
+    if( addressMode == &CPUClass::acc )
     {
-        status |= SET_CARRY;
+        // This could be turned into a ternary, but it would be too ugly
+        if( ( ( accumulator ) & 0b10000000 ) == 0b10000000 )
+        {
+            status |= SET_CARRY;
+        }
+        else
+        {
+            status &= ~SET_CARRY;
+        }
+
+        accumulator << 1;
     }
     else
     {
-        status &= ~SET_CARRY;
-    }
+        if( ( ( memory[ MDR ] ) & 0b10000000 ) == 0b10000000 )
+        {
+            status |= SET_CARRY;
+        }
+        else
+        {
+            status &= ~SET_CARRY;
+        }
 
-    *MDR << 1;
+        memory[ MDR ] << 1;
+    }
 
     updateNegative();
     updateZero();
@@ -348,48 +379,97 @@ void CPUClass::ASL()
 // Bit test
 void CPUClass::BIT()
 {
+    if( accumulator & memory[ MDR ] == 0b00000000 )
+    {
+        status |= SET_ZERO;
+    }
+    else
+    {
+        status &= ~SET_ZERO;
+    }
 
+    if( memory[ MDR ] & 0b10000000 == 0b10000000 )
+    {
+        status |= SET_NEGATIVE;
+    }
+
+    if( memory[ MDR ] & 0b01000000 == 0b01000000 )
+    {
+        status |= SET_OVERFLOW;
+    }
 }
 
 // Branching
+void CPUClass::Branch()
+{
+    // We need to caste the branch offset to a signed int
+    int8_t offset = memory[ MDR ];
+
+    programCounter += offset;
+}
+
 void CPUClass::BPL()
 {
-
+    if( status & 0b10000000 == 0b00000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BMI()
 {
-
+    if( status & 0b10000000 == 0b10000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BVC()
 {
-
+    if( status & 0b01000000 == 0b00000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BVS()
 {
-
+    if( status & 0b01000000 == 0b01000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BCC()
 {
-
+    if( status & 0b00000001 == 0b00000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BCS()
 {
-
+    if( status & 0b00000001 == 0b00000001 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BNE()
 {
-
+    if( status & 0b00000010 == 0b00000000 )
+    {
+        Branch();
+    }
 }
 
 void CPUClass::BEQ()
 {
-
+    if( status & 0b00000010 == 0b00000010 )
+    {
+        Branch();
+    }
 }
 
 // Break
@@ -417,88 +497,140 @@ void CPUClass::CPY()
 // Decrementing
 void CPUClass::DEC()
 {
+    memory[ MDR ]--;
 
+    updateNegative();
+    updateZero();
 }
 
 // Exclusive bitwise or
 void CPUClass::EOR()
 {
+    accumulator ^= memory[ MDR ];
 
+    updateNegative();
+    updateZero();
 }
 
 // Flag Setting
 void CPUClass::CLC()
 {
-
+    status &= ~SET_CARRY;
 }
 
 void CPUClass::SEC()
 {
-
+    status |= SET_CARRY;
 }
 
 void CPUClass::CLI()
 {
-
+    status &= ~SET_INTERRUPT_DISABLE;
 }
 
 void CPUClass::SEI()
 {
-
+    status |= SET_INTERRUPT_DISABLE;
 }
 
 void CPUClass::CLV()
 {
-
+    status &= ~SET_OVERFLOW;
 }
 
+/*
+* NOTE: Based on what I've read these don't work on the NES. Nintendo disabled
+* Binary Coded Decimal mode so they wouldn't have to pay licensing fees based on
+* what I've read. So I suppose they would probably work and set the flag, it
+* just wouldn't do anythin
+*/
 void CPUClass::CLD()
 {
-
+    status &= ~SET_DECIMAL;
 }
 
 void CPUClass::SED()
 {
-
+    status |= SET_DECIMAL;
 }
 
 // Incrementing
 void CPUClass::INC()
 {
+    memory[ MDR ]++;
 
+    updateNegative();
+    updateZero();
 }
 
 // Jumping
 void CPUClass::JMP()
 {
-
+    // TODO: This -1 is a bit hacky
+    programCounter = MDR - 1;
 }
 
 void CPUClass::JSR()
 {
+    uint8_t lo = ( uint8_t )programCounter & 0b00001111;
+    uint8_t hi = ( uint8_t )programCounter >> 8;
 
+    // hi then lo so lo comes off first
+    memory[ stackPointer-- ] = hi;
+    memory[ stackPointer-- ] = lo;
+
+    programCounter = MDR;
 }
 
 // Loading
 void CPUClass::LDA()
 {
-
+    accumulator = memory[ MDR ];
 }
 
 void CPUClass::LDX()
 {
-
+    X = memory[ MDR ];
 }
 
 void CPUClass::LDY()
 {
-
+    Y = memory[ MDR ];
 }
 
 // Left shift
 void CPUClass::LSR()
 {
+    // This could be turned into a ternary, but it would be too ugly
+    if( addressMode == &CPUClass::acc )
+    {
+        if( ( ( accumulator ) & 0b00000001 ) == 0b00000001 )
+        {
+            status |= SET_CARRY;
+        }
+        else
+        {
+            status &= ~SET_CARRY;
+        }
 
+        accumulator >> 1;
+    }
+    else
+    {
+        if( ( ( memory[ MDR ] ) & 0b00000001 ) == 0b00000001 )
+        {
+            status |= SET_CARRY;
+        }
+        else
+        {
+            status &= ~SET_CARRY;
+        }
+
+        memory[ MDR ] >> 1;
+    }
+
+    updateNegative();
+    updateZero();
 }
 
 // NOTHNG
@@ -510,94 +642,171 @@ void CPUClass::NOP()
 // Bitwise or
 void CPUClass::ORA()
 {
+    accumulator |= memory[ MDR ];
 
+    updateNegative();
+    updateZero();
 }
 
 // Register instructions
 void CPUClass::TAX()
 {
-
+    X = accumulator;
 }
 
 void CPUClass::TXA()
 {
-
+    accumulator = X;
 }
 
 void CPUClass::DEX()
 {
-
+    X--;
 }
 
 void CPUClass::INX()
 {
-
+    X++;
 }
 
 void CPUClass::TAY()
 {
-
+    Y = accumulator;
 }
 
 void CPUClass::TYA()
 {
-
+    accumulator = Y;
 }
 
 void CPUClass::DEY()
 {
-
+    Y--;
 }
 
 void CPUClass::INY()
 {
-
+    Y++;
 }
 
+/*
+* NOTE: The NES's CPU performs rotations using the carry. For instance:
+*
+* If we perform a rotate left on the value 0b10000000 with the carry not set
+* we will get 0b00000000 with a set carry. The 1 got rotated off the left into
+* the carry, not bit 0, and the carry got rotated into bit 0.
+*/
 // Rotate left
 void CPUClass::ROL()
 {
+    bool carry;
 
+    if( addressMode == &CPUClass::acc )
+    {
+        // If the high bit is set it needs to be shifted into the carry later
+        carry = ( ( accumulator ) & 0b10000000 ) == 0b10000000;
+
+        accumulator << 1;
+
+        // The carry needs to be moved into the low bit
+        accumulator |= status & SET_CARRY;
+    }
+    else
+    {
+        carry = ( ( memory[ MDR ] ) & 0b10000000 ) == 0b10000000;
+
+        memory[ MDR ] << 1;
+
+        memory[ MDR ] |= status & SET_CARRY;
+    }
+
+    if( carry )
+    {
+        status |= SET_CARRY;
+    }
+
+    updateNegative();
+    updateZero();
 }
 
 // Rotate right
 void CPUClass::ROR()
 {
+    bool carry;
 
+    if( addressMode == &CPUClass::acc )
+    {
+        // If the low bit is set it needs to be shifted into the carry later
+        carry = ( ( accumulator ) & 0b00000001 ) == 0b00000001;
+
+        accumulator >> 1;
+
+        // The carry needs to be moved into the high bit
+        accumulator |= ( status & SET_CARRY ) << 7;
+    }
+    else
+    {
+        bool carry = ( ( memory[ MDR ] ) & 0b00000001 ) == 0b00000001;
+
+        ( memory[ MDR ] ) >> 1;
+
+        memory[ MDR ] |= ( status & SET_CARRY ) << 7;
+    }
+
+    if( carry )
+    {
+        status |= SET_CARRY;
+    }
+
+    updateNegative();
+    updateZero();
 }
 
 // Return from interrupt
 void CPUClass::RTI()
 {
+    status = memory[ ++stackPointer ];
 
+    programCounter = memory[ ++stackPointer ];
+    programCounter += ( ( uint16_t )memory[ ++stackPointer ] ) << 8;
 }
 
 // Return from subroutine
 void CPUClass::RTS()
 {
+    programCounter = memory[ ++stackPointer ];
+    programCounter += ( ( uint16_t )memory[ ++stackPointer ] ) << 8;
 
+    programCounter++;
 }
 
 // Subtract
 void CPUClass::SBC()
 {
+    int8_t oldAccumulator = accumulator;
 
+    accumulator -= memory[ MDR ];
+
+    updateNegative();
+    updateOverflow( oldAccumulator );
+    updateZero();
+    updateCarry( oldAccumulator );
 }
 
 // Store
 void CPUClass::STA()
 {
-
+    memory[ MDR ] = accumulator;
 }
 
 void CPUClass::STX()
 {
-
+    memory[ MDR ] = X;
 }
 
 void CPUClass::STY()
 {
-
+    memory[ MDR ] = Y;
 }
 
 // Not 100% sure what the difference is between this and NOP
@@ -609,30 +818,30 @@ void CPUClass::STP()
 // Stack instructions
 void CPUClass::TXS()
 {
-
+    memory[ stackPointer--] = X;
 }
 
 void CPUClass::TSX()
 {
-
+    X = memory[ ++stackPointer ];
 }
 
 void CPUClass::PHA()
 {
-
+    memory[ stackPointer-- ] = accumulator;
 }
 
 void CPUClass::PLA()
 {
-
+    accumulator = memory[ ++stackPointer ];
 }
 
 void CPUClass::PHP()
 {
-
+    memory[ stackPointer-- ] = status;
 }
 
 void CPUClass::PLP()
 {
-
+    status = memory[ ++stackPointer ];
 }
