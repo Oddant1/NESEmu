@@ -71,10 +71,12 @@ inline void CPUClass::execute()
 
 /*******************************************************************************
 * Status handlers
+*
+* TODO: These all need to take more arguments to work for more than just acc
 *******************************************************************************/
-void CPUClass::updateNegative()
+void CPUClass::updateNegative( int8_t val )
 {
-    if( accumulator < 0 )
+    if( val < 0 )
     {
         status |= SET_NEGATIVE;
     }
@@ -84,9 +86,9 @@ void CPUClass::updateNegative()
     }
 }
 
-void CPUClass::updateOverflow( int8_t oldAccumulator )
+void CPUClass::updateOverflow( int8_t newVal, int8_t oldval )
 {
-    if( accumulator < 0 && oldAccumulator > 0 && MDR > 0 )
+    if( newVal < 0 && oldval > 0 && memory[ MDR ] > 0 )
     {
         status |= SET_OVERFLOW;
     }
@@ -111,9 +113,9 @@ void CPUClass::updateInterruptDisable()
 
 }
 
-void CPUClass::updateZero()
+void CPUClass::updateZero( int8_t val )
 {
-    if( accumulator == 0 )
+    if( val == 0 )
     {
         status |= SET_ZERO;
     }
@@ -123,10 +125,10 @@ void CPUClass::updateZero()
     }
 }
 
-void CPUClass::updateCarry( int8_t oldAccumulator )
+void CPUClass::updateCarry( int8_t newVal, int8_t oldVal )
 {
-    if( ( accumulator > oldAccumulator && MDR < 0 ) ||
-        ( accumulator < oldAccumulator && MDR > 0 ) )
+    if( ( newVal > oldVal && memory[ MDR ] < 0 ) ||
+        ( newVal < oldVal && memory[ MDR ] > 0 ) )
     {
         status |= SET_CARRY;
     }
@@ -147,9 +149,6 @@ void CPUClass::absolute( UseRegister mode = NONE )
 
     uint8_t lo = memory[ ++programCounter ];
     uint8_t hi = memory[ ++programCounter ];
-
-    totalCycles += 4;
-    cyclesRemaining -= 4;
 
     switch( mode )
     {
@@ -301,7 +300,7 @@ void CPUClass::imm()
 
 void CPUClass::rel()
 {
-
+    MDR = ++programCounter;
 }
 
 void CPUClass::imp()
@@ -326,10 +325,10 @@ void CPUClass::ADC()
 
     accumulator += memory[ MDR ];
 
-    updateNegative();
-    updateOverflow( oldAccumulator );
-    updateZero();
-    updateCarry( oldAccumulator );
+    updateNegative( accumulator );
+    updateOverflow( accumulator, oldAccumulator );
+    updateZero( accumulator );
+    updateCarry( accumulator, oldAccumulator );
 }
 
 // Bitwise anding
@@ -337,8 +336,8 @@ void CPUClass::AND()
 {
     accumulator &= memory[ MDR ];
 
-    updateNegative();
-    updateZero();
+    updateNegative( accumulator );
+    updateZero( accumulator );
 }
 
 // Left shift
@@ -372,8 +371,8 @@ void CPUClass::ASL()
         memory[ MDR ] << 1;
     }
 
-    updateNegative();
-    updateZero();
+    updateNegative( accumulator );
+    updateZero( accumulator );
 }
 
 // Bit test
@@ -392,25 +391,33 @@ void CPUClass::BIT()
     {
         status |= SET_NEGATIVE;
     }
+    else
+    {
+        status &= ~SET_NEGATIVE;
+    }
+
 
     if( memory[ MDR ] & 0b01000000 == 0b01000000 )
     {
         status |= SET_OVERFLOW;
     }
+    else
+    {
+        status &= ~SET_OVERFLOW;
+    }
+
 }
 
 // Branching
 void CPUClass::Branch()
 {
     // We need to caste the branch offset to a signed int
-    int8_t offset = memory[ MDR ];
-
-    programCounter += offset;
+    programCounter += ( int8_t )memory[ MDR ];
 }
 
 void CPUClass::BPL()
 {
-    if( status & 0b10000000 == 0b00000000 )
+    if( ( status & 0b10000000 ) == 0b00000000 )
     {
         Branch();
     }
@@ -418,7 +425,7 @@ void CPUClass::BPL()
 
 void CPUClass::BMI()
 {
-    if( status & 0b10000000 == 0b10000000 )
+    if( ( status & 0b10000000 ) == 0b10000000 )
     {
         Branch();
     }
@@ -426,7 +433,7 @@ void CPUClass::BMI()
 
 void CPUClass::BVC()
 {
-    if( status & 0b01000000 == 0b00000000 )
+    if( ( status & 0b01000000 ) == 0b00000000 )
     {
         Branch();
     }
@@ -434,7 +441,7 @@ void CPUClass::BVC()
 
 void CPUClass::BVS()
 {
-    if( status & 0b01000000 == 0b01000000 )
+    if( ( status & 0b01000000 ) == 0b01000000 )
     {
         Branch();
     }
@@ -442,7 +449,7 @@ void CPUClass::BVS()
 
 void CPUClass::BCC()
 {
-    if( status & 0b00000001 == 0b00000000 )
+    if( ( status & 0b00000001 ) == 0b00000000 )
     {
         Branch();
     }
@@ -450,7 +457,7 @@ void CPUClass::BCC()
 
 void CPUClass::BCS()
 {
-    if( status & 0b00000001 == 0b00000001 )
+    if( ( status & 0b00000001 ) == 0b00000001 )
     {
         Branch();
     }
@@ -458,7 +465,7 @@ void CPUClass::BCS()
 
 void CPUClass::BNE()
 {
-    if( status & 0b00000010 == 0b00000000 )
+    if( ( status & 0b00000010 ) == 0b00000000 )
     {
         Branch();
     }
@@ -466,7 +473,7 @@ void CPUClass::BNE()
 
 void CPUClass::BEQ()
 {
-    if( status & 0b00000010 == 0b00000010 )
+    if( ( status & 0b00000010 ) == 0b00000010 )
     {
         Branch();
     }
@@ -479,19 +486,29 @@ void CPUClass::BRK()
 }
 
 // Comparing
+void CPUClass::Compare( int8_t val )
+{
+    int8_t oldVal = val;
+    val -= memory[ MDR ];
+
+    updateNegative( val );
+    updateZero( val );
+    updateCarry( val, oldVal );
+}
+
 void CPUClass::CMP()
 {
-
+    Compare( accumulator );
 }
 
 void CPUClass::CPX()
 {
-
+    Compare( X );
 }
 
 void CPUClass::CPY()
 {
-
+    Compare( Y );
 }
 
 // Decrementing
@@ -499,8 +516,8 @@ void CPUClass::DEC()
 {
     memory[ MDR ]--;
 
-    updateNegative();
-    updateZero();
+    updateNegative( memory[ MDR ] );
+    updateZero( memory[ MDR ] );
 }
 
 // Exclusive bitwise or
@@ -508,8 +525,8 @@ void CPUClass::EOR()
 {
     accumulator ^= memory[ MDR ];
 
-    updateNegative();
-    updateZero();
+    updateNegative( memory[ MDR ] );
+    updateZero( memory[ MDR ] );
 }
 
 // Flag Setting
@@ -559,8 +576,8 @@ void CPUClass::INC()
 {
     memory[ MDR ]++;
 
-    updateNegative();
-    updateZero();
+    updateNegative( memory[ MDR ] );
+    updateZero( memory[ MDR ] );
 }
 
 // Jumping
@@ -579,28 +596,39 @@ void CPUClass::JSR()
     memory[ stackPointer-- ] = hi;
     memory[ stackPointer-- ] = lo;
 
-    programCounter = MDR;
+    programCounter = MDR - 1;
 }
 
 // Loading
 void CPUClass::LDA()
 {
     accumulator = memory[ MDR ];
+
+    updateNegative( accumulator );
+    updateZero( accumulator );
 }
 
 void CPUClass::LDX()
 {
     X = memory[ MDR ];
+
+    updateNegative( X );
+    updateZero( X );
 }
 
 void CPUClass::LDY()
 {
     Y = memory[ MDR ];
+
+    updateNegative( Y );
+    updateZero( Y );
 }
 
 // Left shift
 void CPUClass::LSR()
 {
+    int8_t val;
+
     // This could be turned into a ternary, but it would be too ugly
     if( addressMode == &CPUClass::acc )
     {
@@ -614,6 +642,7 @@ void CPUClass::LSR()
         }
 
         accumulator >> 1;
+        val = accumulator;
     }
     else
     {
@@ -627,10 +656,11 @@ void CPUClass::LSR()
         }
 
         memory[ MDR ] >> 1;
+        val = memory[ MDR ];
     }
 
-    updateNegative();
-    updateZero();
+    updateNegative( val );
+    updateZero( val );
 }
 
 // NOTHNG
@@ -644,49 +674,73 @@ void CPUClass::ORA()
 {
     accumulator |= memory[ MDR ];
 
-    updateNegative();
-    updateZero();
+    updateNegative( accumulator );
+    updateZero( accumulator );
 }
 
 // Register instructions
 void CPUClass::TAX()
 {
     X = accumulator;
+
+    updateNegative( X );
+    updateZero( X );
 }
 
 void CPUClass::TXA()
 {
     accumulator = X;
+
+    updateNegative( accumulator );
+    updateZero( accumulator );
 }
 
 void CPUClass::DEX()
 {
     X--;
+
+    updateNegative( X );
+    updateZero( X );
 }
 
 void CPUClass::INX()
 {
     X++;
+
+    updateNegative( X );
+    updateZero( X );
 }
 
 void CPUClass::TAY()
 {
     Y = accumulator;
+
+    updateNegative( Y );
+    updateZero( Y );
 }
 
 void CPUClass::TYA()
 {
     accumulator = Y;
+
+    updateNegative( Y );
+    updateZero( Y );
 }
 
 void CPUClass::DEY()
 {
     Y--;
+
+    updateNegative( Y );
+    updateZero( Y );
 }
 
 void CPUClass::INY()
 {
     Y++;
+
+    updateNegative( Y );
+    updateZero( Y );
 }
 
 /*
@@ -700,6 +754,7 @@ void CPUClass::INY()
 void CPUClass::ROL()
 {
     bool carry;
+    int8_t val;
 
     if( addressMode == &CPUClass::acc )
     {
@@ -710,6 +765,7 @@ void CPUClass::ROL()
 
         // The carry needs to be moved into the low bit
         accumulator |= status & SET_CARRY;
+        val = accumulator;
     }
     else
     {
@@ -718,6 +774,7 @@ void CPUClass::ROL()
         memory[ MDR ] << 1;
 
         memory[ MDR ] |= status & SET_CARRY;
+        val = memory[ MDR ];
     }
 
     if( carry )
@@ -725,13 +782,14 @@ void CPUClass::ROL()
         status |= SET_CARRY;
     }
 
-    updateNegative();
-    updateZero();
+    updateNegative( val );
+    updateZero( val );
 }
 
 // Rotate right
 void CPUClass::ROR()
 {
+    int8_t val;
     bool carry;
 
     if( addressMode == &CPUClass::acc )
@@ -743,6 +801,7 @@ void CPUClass::ROR()
 
         // The carry needs to be moved into the high bit
         accumulator |= ( status & SET_CARRY ) << 7;
+        val = accumulator;
     }
     else
     {
@@ -751,6 +810,7 @@ void CPUClass::ROR()
         ( memory[ MDR ] ) >> 1;
 
         memory[ MDR ] |= ( status & SET_CARRY ) << 7;
+        val = memory[ MDR ];
     }
 
     if( carry )
@@ -758,8 +818,8 @@ void CPUClass::ROR()
         status |= SET_CARRY;
     }
 
-    updateNegative();
-    updateZero();
+    updateNegative( val );
+    updateZero( val );
 }
 
 // Return from interrupt
@@ -787,10 +847,10 @@ void CPUClass::SBC()
 
     accumulator -= memory[ MDR ];
 
-    updateNegative();
-    updateOverflow( oldAccumulator );
-    updateZero();
-    updateCarry( oldAccumulator );
+    updateNegative( accumulator );
+    updateOverflow( accumulator, oldAccumulator );
+    updateZero( accumulator );
+    updateCarry( accumulator, oldAccumulator );
 }
 
 // Store

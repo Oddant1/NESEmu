@@ -64,7 +64,7 @@ class CPUClass
     int8_t Y = 0x00;
 
     // This will probably be interacted with using bitwise operations
-    uint8_t status = 0x00; //0x34;
+    uint8_t status = 0x34;
 
     // I think we're just going to leave the opcode here when we decode it
     // instead of shunting it of to another "register" because at this high of a
@@ -97,18 +97,18 @@ class CPUClass
     /***************************************************************************
     * Status handlers
     ***************************************************************************/
-    void updateNegative();
+    void updateNegative( int8_t val );
     // TODO: This has opcodes. This may also need to be opcode specific
-    void updateOverflow( int8_t oldAccumulator );
+    void updateOverflow( int8_t newVal, int8_t oldVal );
     // TODO: This has opcodes
     void updateBreak();
     // TODO: This has opcodes
     void updateDecimal();
     void updateInterruptDisable();
-    void updateZero();
+    void updateZero( int8_t val );
     // TODO: This has opcodes. This will probably need to be more opcode
     // specific
-    void updateCarry( int8_t oldAccumulator );
+    void updateCarry( int8_t newVal, int8_t oldVal );
 
     /***************************************************************************
     * Handle addressing mode operand resolution
@@ -181,6 +181,8 @@ class CPUClass
     void BRK();
 
     // Comparing
+    void Compare( int8_t val );
+
     void CMP();
     void CPX();
     void CPY();
