@@ -1,9 +1,5 @@
 #include "CPU.h"
 
-// TODO: I need to start thinking very seriously about how the program counter
-// and cycle counts are to be managed. I'm not sure my previous solutions are as
-// good as I previously thought
-
 // start running here
 void CPUClass::run( std::ifstream &ROMImage )
 {
@@ -71,8 +67,6 @@ inline void CPUClass::execute()
 
 /*******************************************************************************
 * Status handlers
-*
-* TODO: These all need to take more arguments to work for more than just acc
 *******************************************************************************/
 void CPUClass::updateNegative( int8_t val )
 {
@@ -290,7 +284,6 @@ void CPUClass::zeY()
     zeroPage( USE_Y );
 }
 
-// TODO: INVESTIDATE RETURN TYPES OF MEMORY RESOLVERS
 // This is kind of a formality so there is an entry into the addressmode decode
 // table for immediate opcodes
 void CPUClass::imm()
@@ -589,8 +582,9 @@ void CPUClass::JMP()
 
 void CPUClass::JSR()
 {
-    uint8_t lo = ( uint8_t )programCounter & 0b00001111;
-    uint8_t hi = ( uint8_t )programCounter >> 8;
+    // TODO: The RTS issues are probably coming from here
+    uint8_t lo = programCounter & 0b0000000011111111;
+    uint8_t hi = programCounter >> 8;
 
     // hi then lo so lo comes off first
     memory[ stackPointer-- ] = hi;
@@ -834,10 +828,9 @@ void CPUClass::RTI()
 // Return from subroutine
 void CPUClass::RTS()
 {
+    // TODO: Something is going wrong attempting to return
     programCounter = memory[ ++stackPointer ];
     programCounter += ( ( uint16_t )memory[ ++stackPointer ] ) << 8;
-
-    programCounter++;
 }
 
 // Subtract
