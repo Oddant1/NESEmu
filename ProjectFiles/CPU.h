@@ -64,7 +64,7 @@ class CPUClass
     int8_t Y = 0x00;
 
     // This will probably be interacted with using bitwise operations
-    uint8_t status = 0x34;
+    uint8_t status = 0b00110100;
 
     // I think we're just going to leave the opcode here when we decode it
     // instead of shunting it of to another "register" because at this high of a

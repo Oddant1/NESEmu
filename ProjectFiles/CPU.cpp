@@ -1,8 +1,13 @@
 #include "CPU.h"
+#include <iostream>
+#include <fstream>
 
 // start running here
 void CPUClass::run( std::ifstream &ROMImage )
 {
+    std::ofstream myFile;
+    myFile.open("test.txt");
+
     // TODO: So I've been messing around with trying to keep time on some tiny
     // toy programs, and I think it's going to have to go something like this.
     // 1. Complete necessary computation for one frame
@@ -18,8 +23,10 @@ void CPUClass::run( std::ifstream &ROMImage )
     ROMImage.seekg( 0x10, ROMImage.beg );
     ROMImage.read( ( char* )( &memory[ 0xC000 ] ), 0x4000 );
 
-    for( int i = 0; i < 184; i++ )
+    // for( int i = 0; i < 184; i++ )?
+    while( true )
     {
+        myFile << std::uppercase << std::hex << programCounter << std::endl;
         // auto begin = std::chrono::high_resolution_clock::now()
         fetch();
         // Decoding needs to be split into two stages
@@ -339,7 +346,7 @@ void CPUClass::ASL()
     if( addressMode == &CPUClass::acc )
     {
         // This could be turned into a ternary, but it would be too ugly
-        if( ( ( accumulator ) & 0b10000000 ) == 0b10000000 )
+        if( ( accumulator & 0b10000000 ) == 0b10000000 )
         {
             status |= SET_CARRY;
         }
@@ -352,7 +359,7 @@ void CPUClass::ASL()
     }
     else
     {
-        if( ( ( memory[ MDR ] ) & 0b10000000 ) == 0b10000000 )
+        if( ( memory[ MDR ] & 0b10000000 ) == 0b10000000 )
         {
             status |= SET_CARRY;
         }
@@ -371,7 +378,7 @@ void CPUClass::ASL()
 // Bit test
 void CPUClass::BIT()
 {
-    if( accumulator & memory[ MDR ] == 0b00000000 )
+    if( ( accumulator & memory[ MDR ] ) == 0b00000000 )
     {
         status |= SET_ZERO;
     }
@@ -380,7 +387,7 @@ void CPUClass::BIT()
         status &= ~SET_ZERO;
     }
 
-    if( memory[ MDR ] & 0b10000000 == 0b10000000 )
+    if( ( memory[ MDR ] & 0b10000000 ) == 0b10000000 )
     {
         status |= SET_NEGATIVE;
     }
@@ -390,7 +397,7 @@ void CPUClass::BIT()
     }
 
 
-    if( memory[ MDR ] & 0b01000000 == 0b01000000 )
+    if(( memory[ MDR ] & 0b01000000 ) == 0b01000000 )
     {
         status |= SET_OVERFLOW;
     }
@@ -877,6 +884,9 @@ void CPUClass::TXS()
 void CPUClass::TSX()
 {
     X = memory[ ++stackPointer ];
+
+    updateNegative( X );
+    updateZero( X );
 }
 
 void CPUClass::PHA()
@@ -887,6 +897,9 @@ void CPUClass::PHA()
 void CPUClass::PLA()
 {
     accumulator = memory[ ++stackPointer ];
+
+    updateNegative( accumulator );
+    updateZero( accumulator );
 }
 
 void CPUClass::PHP()
