@@ -28,11 +28,11 @@ void CPUClass::run( std::ifstream &ROMImage )
     // for( int i = 0; i < 184; i++ )?
     while( true )
     {
-        // if( PC == 0xC953 )
-        // {
-        //     break;
-        //     std::cout << "here" << std::endl;
-        // }
+        if( PC == 0xC953 )
+        {
+            // break;
+            std::cout << "here" << std::endl;
+        }
         myFile << std::uppercase << std::hex << PC << std::endl;
         // auto begin = std::chrono::high_resolution_clock::now()
         fetch();
@@ -337,8 +337,6 @@ void CPUClass::ADC()
 
     A += *MDR;
     // Add the carry bit
-    // TODO: If we add this carry bit are we guaranteed to come out with a clear
-    // carry?
     A += ( P & 0b00000001 );
 
     updateNegative( A );
@@ -347,10 +345,43 @@ void CPUClass::ADC()
     updateCarry( A, oldA );
 }
 
-// Bitwise anding
+// Subtract
+void CPUClass::SBC()
+{
+    int8_t oldA =  A;
+
+     A -= *MDR;
+     // Subtract carry
+     A -= ( P & 0b00000001 );
+
+    updateNegative( A );
+    updateOverflow( A, oldA );
+    updateZero( A );
+    updateCarry( A, oldA );
+}
+
+// Bitwise and
 void CPUClass::AND()
 {
      A &= *MDR;
+
+    updateNegative( A );
+    updateZero( A );
+}
+
+// Exclusive bitwise or
+void CPUClass::EOR()
+{
+     A ^= *MDR;
+
+    updateNegative( A );
+    updateZero( A );
+}
+
+// Bitwise or
+void CPUClass::ORA()
+{
+     A |= *MDR;
 
     updateNegative( A );
     updateZero( A );
@@ -371,6 +402,27 @@ void CPUClass::ASL()
     }
 
     *MDR << 1;
+    val = *MDR;
+
+    updateNegative( val );
+    updateZero( val );
+}
+
+// Left shift
+void CPUClass::LSR()
+{
+    int8_t val;
+
+    if( ( ( *MDR ) & 0b00000001 ) == 0b00000001 )
+    {
+        P |= SET_CARRY;
+    }
+    else
+    {
+        P &= ~SET_CARRY;
+    }
+
+    *MDR >> 1;
     val = *MDR;
 
     updateNegative( val );
@@ -520,13 +572,13 @@ void CPUClass::DEC()
     updateZero( *MDR );
 }
 
-// Exclusive bitwise or
-void CPUClass::EOR()
+// Incrementing
+void CPUClass::INC()
 {
-     A ^= *MDR;
+    *MDR++;
 
-    updateNegative( A );
-    updateZero( A );
+    updateNegative( *MDR );
+    updateZero( *MDR );
 }
 
 // Flag Setting
@@ -569,15 +621,6 @@ void CPUClass::CLD()
 void CPUClass::SED()
 {
     P |= SET_DECIMAL;
-}
-
-// Incrementing
-void CPUClass::INC()
-{
-    *MDR++;
-
-    updateNegative( *MDR );
-    updateZero( *MDR );
 }
 
 // Jumping
@@ -625,40 +668,10 @@ void CPUClass::LDY()
     updateZero( Y );
 }
 
-// Left shift
-void CPUClass::LSR()
-{
-    int8_t val;
-
-    if( ( ( *MDR ) & 0b00000001 ) == 0b00000001 )
-    {
-        P |= SET_CARRY;
-    }
-    else
-    {
-        P &= ~SET_CARRY;
-    }
-
-    *MDR >> 1;
-    val = *MDR;
-
-    updateNegative( val );
-    updateZero( val );
-}
-
 // NOTHNG
 void CPUClass::NOP()
 {
 
-}
-
-// Bitwise or
-void CPUClass::ORA()
-{
-     A |= *MDR;
-
-    updateNegative( A );
-    updateZero( A );
 }
 
 // Register instructions
@@ -790,19 +803,6 @@ void CPUClass::RTS()
     // TODO: Something is going wrong attempting to return
     PC = memory[ ++SP ];
     PC += ( ( uint16_t )memory[ ++SP ] ) << 8;
-}
-
-// Subtract
-void CPUClass::SBC()
-{
-    int8_t oldA =  A;
-
-     A -= *MDR;
-
-    updateNegative( A );
-    updateOverflow( A, oldA );
-    updateZero( A );
-    updateCarry( A, oldA );
 }
 
 // Store

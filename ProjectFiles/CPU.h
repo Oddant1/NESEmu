@@ -156,19 +156,26 @@ class CPUClass
 
     // Adding
     void ADC();
+    // Subtract
+    void SBC();
 
-    // Bitwise anding
+    // Bitwise and
     void AND();
+    // Exclusive bitwise or
+    void EOR();
+    // Bitwise or
+    void ORA();
 
     // Left shift
     void ASL();
+    // Left shift
+    void LSR();
 
     // Bit test
     void BIT();
 
     // Branching
     void Branch();
-
     void BPL();
     void BMI();
     void BVC();
@@ -183,16 +190,14 @@ class CPUClass
 
     // Comparing
     void Compare( int8_t val );
-
     void CMP();
     void CPX();
     void CPY();
 
     // Decrementing
     void DEC();
-
-    // Exclusive bitwise or
-    void EOR();
+    // Incrementing
+    void INC();
 
     // Flag Setting
     void CLC();
@@ -203,9 +208,6 @@ class CPUClass
     void CLD();
     void SED();
 
-    // Incrementing
-    void INC();
-
     // Jumping
     void JMP();
     void JSR();
@@ -215,14 +217,8 @@ class CPUClass
     void LDX();
     void LDY();
 
-    // Left shift
-    void LSR();
-
     // NOTHNG
     void NOP();
-
-    // Bitwise or
-    void ORA();
 
     // Register instructions
     void TAX();
@@ -236,18 +232,13 @@ class CPUClass
 
     // Rotate left
     void ROL();
-
     // Rotate right
     void ROR();
 
     // Return from interrupt
     void RTI();
-
     // Return from subroutine
     void RTS();
-
-    // Subtract
-    void SBC();
 
     // Store
     void STA();
