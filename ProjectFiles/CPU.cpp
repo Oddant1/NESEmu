@@ -28,11 +28,11 @@ void CPUClass::run( std::ifstream &ROMImage )
     // for( int i = 0; i < 184; i++ )?
     while( true )
     {
-        // if( PC == 0xC953 )
-        // {
-        //     // break;
-        //     std::cout << "here" << std::endl;
-        // }
+        if( PC == 0xC968 )
+        {
+            // break;
+            std::cout << "here" << std::endl;
+        }
         myFile << std::uppercase << std::hex << PC << std::endl;
         // auto begin = std::chrono::high_resolution_clock::now()
         fetch();
@@ -100,8 +100,8 @@ void CPUClass::updateNegative( int8_t val )
 
 void CPUClass::updateOverflow( int8_t newVal, int8_t oldval )
 {
-    if( ( newVal < 0 && oldval > 0 && *MDR > 0 ) ||
-        ( newVal > 0 && oldval < 0 && *MDR < 0 ) )
+    if( ( newVal < 0 && oldval > 0 && ( int8_t )*MDR > 0 ) ||
+        ( newVal > 0 && oldval < 0 && ( int8_t )*MDR < 0 ) )
     {
         P |= SET_OVERFLOW;
     }
