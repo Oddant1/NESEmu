@@ -28,11 +28,11 @@ void CPUClass::run( std::ifstream &ROMImage )
     // for( int i = 0; i < 184; i++ )?
     while( true )
     {
-        if( PC == 0xC953 )
-        {
-            // break;
-            std::cout << "here" << std::endl;
-        }
+        // if( PC == 0xC953 )
+        // {
+        //     // break;
+        //     std::cout << "here" << std::endl;
+        // }
         myFile << std::uppercase << std::hex << PC << std::endl;
         // auto begin = std::chrono::high_resolution_clock::now()
         fetch();
@@ -334,25 +334,40 @@ void CPUClass::non()
 void CPUClass::ADC()
 {
     int8_t oldA =  A;
+    uint16_t temp = A;
 
-    A += *MDR;
+    temp += *MDR;
     // Add the carry bit
-    A += ( P & 0b00000001 );
+    temp += ( P & 0b00000001 );
+
+    A = ( int8_t )temp;
 
     updateNegative( A );
     updateOverflow( A, oldA );
     updateZero( A );
-    updateCarry( A, oldA );
+    // updateCarry( A, oldA );
+
+    if( temp > 0xFF )
+    {
+        P |= SET_CARRY;
+    }
+    else
+    {
+        P &= ~SET_CARRY;
+    }
 }
 
 // Subtract
 void CPUClass::SBC()
 {
     int8_t oldA =  A;
+    int16_t temp = A;
 
-     A -= *MDR;
-     // Subtract carry
-     A -= ( P & 0b00000001 );
+    temp -= *MDR;
+    // Subtract the carry bit
+    temp -= ( 1 - ( P & 0b00000001 ) );
+
+    A = ( int8_t )temp;
 
     updateNegative( A );
     updateOverflow( A, oldA );
