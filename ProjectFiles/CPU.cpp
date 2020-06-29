@@ -27,7 +27,7 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     while( true )
     {
-        if( PC == 0xCDBA )
+        if( PC == 0xCEFC )
         {
             // break;
             std::cout << "here" << std::endl;
@@ -257,7 +257,7 @@ void CPUClass::zeroPage( UseRegister mode = NONE )
     // The value is supposed to just wrap to stay on the zero page, so we don't
     // need to handle overflows at all (if it didn't wrap it would hit the
     // stack)
-    MDR = &memory[ ++PC + offset ];
+    MDR = &memory[ memory[ ++PC + offset ] ];
 }
 
 void CPUClass::zer()
@@ -396,7 +396,6 @@ void CPUClass::ORA()
 // Left shift
 void CPUClass::ASL()
 {
-    int8_t reg;
 
     if( ( *MDR & 0b10000000 ) == 0b10000000 )
     {
@@ -407,19 +406,16 @@ void CPUClass::ASL()
         P &= ~SET_CARRY;
     }
 
-    *MDR << 1;
-    reg = *MDR;
+    *MDR <<= 1;
 
-    updateNegative( reg );
-    updateZero( reg );
+    updateNegative( *MDR );
+    updateZero( *MDR );
 }
 
 // Left shift
 void CPUClass::LSR()
 {
-    int8_t reg;
-
-    if( ( ( *MDR ) & 0b00000001 ) == 0b00000001 )
+    if( ( *MDR  & 0b00000001 ) == 0b00000001 )
     {
         P |= SET_CARRY;
     }
@@ -428,17 +424,16 @@ void CPUClass::LSR()
         P &= ~SET_CARRY;
     }
 
-    *MDR >> 1;
-    reg = *MDR;
+    *MDR >>= 1;
 
-    updateNegative( reg );
-    updateZero( reg );
+    updateNegative( *MDR );
+    updateZero( *MDR );
 }
 
 // Bit test
 void CPUClass::BIT()
 {
-    if( ( A & memory[ *MDR ] ) == 0b00000000 )
+    if( ( A & *MDR ) == 0b00000000 )
     {
         P |= SET_ZERO;
     }
@@ -447,7 +442,7 @@ void CPUClass::BIT()
         P &= ~SET_ZERO;
     }
 
-    if( ( memory[ *MDR ] & 0b10000000 ) == 0b10000000 )
+    if( ( *MDR & 0b10000000 ) == 0b10000000 )
     {
         P |= SET_NEGATIVE;
     }
@@ -456,7 +451,7 @@ void CPUClass::BIT()
         P &= ~SET_NEGATIVE;
     }
 
-    if( ( memory [ *MDR ] & 0b01000000 ) == 0b01000000 )
+    if( ( *MDR  & 0b01000000 ) == 0b01000000 )
     {
         P |= SET_OVERFLOW;
     }
@@ -644,8 +639,8 @@ void CPUClass::JSR()
     uint8_t hi = PC >> 8;
 
     // hi then lo so lo comes off first
-    memory[ SP-- ] = hi;
-    memory[ SP-- ] = lo;
+    stack[ SP-- ] = hi;
+    stack[ SP-- ] = lo;
 
     // Note: -1 because we increment the PC at the end of run
     PC = MDR - memory - 1;
@@ -799,34 +794,36 @@ void CPUClass::ROR()
 // Return from interrupt
 void CPUClass::RTI()
 {
-    P = memory[ ++SP ];
+    P = stack[ ++SP ];
 
-    PC = memory[ ++SP ];
-    PC += ( ( uint16_t )memory[ ++SP ] ) << 8;
+    PC = stack[ ++SP ];
+    PC += ( ( uint16_t )stack[ ++SP ] ) << 8;
+    // Decrement here because we increment at the end of run
+    PC--;
 }
 
 // Return from subroutine
 void CPUClass::RTS()
 {
     // TODO: Something is going wrong attempting to return
-    PC = memory[ ++SP ];
-    PC += ( ( uint16_t )memory[ ++SP ] ) << 8;
+    PC = stack[ ++SP ];
+    PC += ( ( uint16_t )stack[ ++SP ] ) << 8;
 }
 
 // Store
 void CPUClass::STA()
 {
-    memory[ *MDR ] =  A;
+    *MDR =  A;
 }
 
 void CPUClass::STX()
 {
-    memory[ *MDR ] = X;
+    *MDR = X;
 }
 
 void CPUClass::STY()
 {
-    memory[ *MDR ] = Y;
+    *MDR = Y;
 }
 
 // Not 100% sure what the difference is between this and NOP
@@ -851,12 +848,12 @@ void CPUClass::TSX()
 
 void CPUClass::PHA()
 {
-    memory[ SP-- ] =  A;
+    stack[ SP-- ] =  A;
 }
 
 void CPUClass::PLA()
 {
-     A = memory[ ++SP ];
+    A = stack[ ++SP ];
 
     updateNegative( A );
     updateZero( A );
@@ -864,10 +861,10 @@ void CPUClass::PLA()
 
 void CPUClass::PHP()
 {
-    memory[ SP-- ] = P;
+    stack[ SP-- ] = P;
 }
 
 void CPUClass::PLP()
 {
-    P = memory[ ++SP ];
+    P = stack[ ++SP  ];
 }

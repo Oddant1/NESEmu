@@ -80,7 +80,8 @@ class CPUClass
     * Mapped memory
     ***************************************************************************/
     // The last address is the accumulator
-    uint8_t memory [ 0x10000 ] = {};
+    uint8_t memory[ 0x10000 ] = {};
+    uint8_t* stack = &memory[ 0x100 ];
 
     /***************************************************************************
     * Runs the emulated CPU
@@ -340,7 +341,7 @@ class CPUClass
         &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
         &CPUClass::imp, &CPUClass::inX, &CPUClass::non, &CPUClass::inX,
         &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
-        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::acc, &CPUClass::imm,
         &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
         &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
         &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
