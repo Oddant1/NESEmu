@@ -99,17 +99,12 @@ class CPUClass
     * P handlers
     ***************************************************************************/
     inline void updateNegative( int8_t reg );
-    // TODO: This has opcodes. This may also need to be opcode specific
-    inline void updateOverflow( int8_t newVal, int8_t oldVal );
     // TODO: This has opcodes
     inline void updateBreak();
     // TODO: This has opcodes
     inline void updateDecimal();
     inline void updateInterruptDisable();
     inline void updateZero( int8_t reg );
-    // TODO: This has opcodes. This will probably need to be more opcode
-    // specific
-    inline void updateCarry( uint16_t reg );
 
     /***************************************************************************
     * Handle addressing mode operand resolution

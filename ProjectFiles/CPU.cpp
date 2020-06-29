@@ -27,7 +27,7 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     while( true )
     {
-        if( PC == 0xF96A )
+        if( PC == 0xCDBA )
         {
             // break;
             std::cout << "here" << std::endl;
@@ -48,8 +48,7 @@ void CPUClass::run( std::ifstream &ROMImage )
         // helps with JSR and RTS behavior as it is dependent on pushing and
         // popping the address of the last operand of the previous opcode. To do
         // this differently would break jump tables that are designed with that
-        // behavior in mind. I don't think we always want to inc though do we.
-        // Length one opcodes
+        // behavior in mind.
         PC++;
     }
 
@@ -97,19 +96,6 @@ inline void CPUClass::updateNegative( int8_t reg )
     }
 }
 
-inline void CPUClass::updateOverflow( int8_t newVal, int8_t oldval )
-{
-    if( ( newVal < 0 && oldval > 0 && ( int8_t )*MDR > 0 ) ||
-        ( newVal > 0 && oldval < 0 && ( int8_t )*MDR < 0 ) )
-    {
-        P |= SET_OVERFLOW;
-    }
-    else
-    {
-        P &= ~SET_OVERFLOW;
-    }
-}
-
 inline void CPUClass::updateBreak()
 {
 
@@ -134,18 +120,6 @@ inline void CPUClass::updateZero( int8_t reg )
     else
     {
         P &= ~SET_ZERO;
-    }
-}
-
-inline void CPUClass::updateCarry( uint16_t reg )
-{
-    if( reg > 0xFF )
-    {
-        P |= SET_CARRY;
-    }
-    else
-    {
-        P &= ~SET_CARRY;
     }
 }
 
@@ -341,9 +315,27 @@ void CPUClass::ADC()
     A = ( int8_t )temp;
 
     updateNegative( A );
-    updateOverflow( A, oldA );
+
+    if( ( A < 0 && oldA > 0 && ( int8_t )*MDR > 0 ) ||
+        ( A > 0 && oldA < 0 && ( int8_t )*MDR < 0 ) )
+    {
+        P |= SET_OVERFLOW;
+    }
+    else
+    {
+        P &= ~SET_OVERFLOW;
+    }
+
     updateZero( A );
-    updateCarry( temp );
+
+    if( temp > 0xFF )
+    {
+        P |= SET_CARRY;
+    }
+    else
+    {
+        P &= ~SET_CARRY;
+    }
 }
 
 // Subtract
@@ -351,15 +343,12 @@ void CPUClass::SBC()
 {
     int8_t oldA =  A;
 
-    // If we are subtracting a value larger than the value in the accumulator
-    // we will need to borrow which for SBC and Compare means set carry
-    A >= ( int8_t )*MDR ? P |= SET_CARRY : P &= ~SET_CARRY;
-
     A -= *MDR;
     // Add the carry
     A -= ( 1 - ( P & 0b00000001 ) );
 
     updateNegative( A );
+
     if( ( A < 0 && oldA > 0 && ( int8_t )*MDR < 0 ) ||
         ( A > 0 && oldA < 0 && ( int8_t )*MDR > 0 ) )
     {
@@ -370,8 +359,11 @@ void CPUClass::SBC()
         P &= ~SET_OVERFLOW;
     }
 
-    // updateOverflow( A, oldA );
     updateZero( A );
+
+    // If we are subtracting a value larger than the value in the accumulator
+    // we will need to borrow which for SBC and Compare means set carry
+    ( uint8_t)oldA >= *MDR ? P |= SET_CARRY : P &= ~SET_CARRY;
 }
 
 // Bitwise and
@@ -846,12 +838,12 @@ void CPUClass::STP()
 // Stack instructions
 void CPUClass::TXS()
 {
-    memory[ SP--] = X;
+    SP = X;
 }
 
 void CPUClass::TSX()
 {
-    X = memory[ ++SP ];
+    X = SP;
 
     updateNegative( X );
     updateZero( X );
