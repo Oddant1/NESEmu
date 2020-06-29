@@ -25,10 +25,9 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     auto begin = std::chrono::high_resolution_clock::now();
 
-    // for( int i = 0; i < 184; i++ )?
     while( true )
     {
-        if( PC == 0xC968 )
+        if( PC == 0xF96A )
         {
             // break;
             std::cout << "here" << std::endl;
@@ -86,9 +85,9 @@ inline void CPUClass::execute()
 /*******************************************************************************
 * Status handlers
 *******************************************************************************/
-void CPUClass::updateNegative( int8_t val )
+inline void CPUClass::updateNegative( int8_t reg )
 {
-    if( val < 0 )
+    if( reg < 0 )
     {
         P |= SET_NEGATIVE;
     }
@@ -98,7 +97,7 @@ void CPUClass::updateNegative( int8_t val )
     }
 }
 
-void CPUClass::updateOverflow( int8_t newVal, int8_t oldval )
+inline void CPUClass::updateOverflow( int8_t newVal, int8_t oldval )
 {
     if( ( newVal < 0 && oldval > 0 && ( int8_t )*MDR > 0 ) ||
         ( newVal > 0 && oldval < 0 && ( int8_t )*MDR < 0 ) )
@@ -111,24 +110,24 @@ void CPUClass::updateOverflow( int8_t newVal, int8_t oldval )
     }
 }
 
-void CPUClass::updateBreak()
+inline void CPUClass::updateBreak()
 {
 
 }
 
-void CPUClass::updateDecimal()
+inline void CPUClass::updateDecimal()
 {
     // TODO: I believe this flag was actually disabled on the NES
 }
 
-void CPUClass::updateInterruptDisable()
+inline void CPUClass::updateInterruptDisable()
 {
 
 }
 
-void CPUClass::updateZero( int8_t val )
+inline void CPUClass::updateZero( int8_t reg )
 {
-    if( val == 0 )
+    if( reg == 0 )
     {
         P |= SET_ZERO;
     }
@@ -138,10 +137,9 @@ void CPUClass::updateZero( int8_t val )
     }
 }
 
-void CPUClass::updateCarry( int8_t newVal, int8_t oldVal )
+inline void CPUClass::updateCarry( uint16_t reg )
 {
-    if( ( newVal < oldVal && oldVal > 0 && *MDR > 0 ) ||
-        ( newVal > oldVal && oldVal < 0 && *MDR > 0 ) )
+    if( reg > 0xFF )
     {
         P |= SET_CARRY;
     }
@@ -345,34 +343,35 @@ void CPUClass::ADC()
     updateNegative( A );
     updateOverflow( A, oldA );
     updateZero( A );
-    // updateCarry( A, oldA );
-
-    if( temp > 0xFF )
-    {
-        P |= SET_CARRY;
-    }
-    else
-    {
-        P &= ~SET_CARRY;
-    }
+    updateCarry( temp );
 }
 
 // Subtract
 void CPUClass::SBC()
 {
     int8_t oldA =  A;
-    int16_t temp = A;
 
-    temp -= *MDR;
-    // Subtract the carry bit
-    temp -= ( 1 - ( P & 0b00000001 ) );
+    // If we are subtracting a value larger than the value in the accumulator
+    // we will need to borrow which for SBC and Compare means set carry
+    A >= ( int8_t )*MDR ? P |= SET_CARRY : P &= ~SET_CARRY;
 
-    A = ( int8_t )temp;
+    A -= *MDR;
+    // Add the carry
+    A -= ( 1 - ( P & 0b00000001 ) );
 
     updateNegative( A );
-    updateOverflow( A, oldA );
+    if( ( A < 0 && oldA > 0 && ( int8_t )*MDR < 0 ) ||
+        ( A > 0 && oldA < 0 && ( int8_t )*MDR > 0 ) )
+    {
+        P |= SET_OVERFLOW;
+    }
+    else
+    {
+        P &= ~SET_OVERFLOW;
+    }
+
+    // updateOverflow( A, oldA );
     updateZero( A );
-    updateCarry( A, oldA );
 }
 
 // Bitwise and
@@ -405,7 +404,7 @@ void CPUClass::ORA()
 // Left shift
 void CPUClass::ASL()
 {
-    int8_t val;
+    int8_t reg;
 
     if( ( *MDR & 0b10000000 ) == 0b10000000 )
     {
@@ -417,16 +416,16 @@ void CPUClass::ASL()
     }
 
     *MDR << 1;
-    val = *MDR;
+    reg = *MDR;
 
-    updateNegative( val );
-    updateZero( val );
+    updateNegative( reg );
+    updateZero( reg );
 }
 
 // Left shift
 void CPUClass::LSR()
 {
-    int8_t val;
+    int8_t reg;
 
     if( ( ( *MDR ) & 0b00000001 ) == 0b00000001 )
     {
@@ -438,10 +437,10 @@ void CPUClass::LSR()
     }
 
     *MDR >> 1;
-    val = *MDR;
+    reg = *MDR;
 
-    updateNegative( val );
-    updateZero( val );
+    updateNegative( reg );
+    updateZero( reg );
 }
 
 // Bit test
@@ -553,14 +552,16 @@ void CPUClass::BRK()
 }
 
 // Comparing
-void CPUClass::Compare( int8_t val )
+void CPUClass::Compare( int8_t reg )
 {
-    int8_t oldVal = val;
-    val -= *MDR;
+    // If we are comparing a value larger than the value in the register
+    // we will need to borrow which for SBC and Compare means set carry
+    ( uint8_t )reg >= *MDR ? P |= SET_CARRY : P &= ~SET_CARRY;
 
-    updateNegative( val );
-    updateZero( val );
-    updateCarry( val, oldVal );
+    reg -= *MDR;
+
+    updateNegative( reg );
+    updateZero( reg );
 }
 
 void CPUClass::CMP()
@@ -764,43 +765,43 @@ void CPUClass::INY()
 // Rotate left
 void CPUClass::ROL()
 {
-    int8_t val;
+    int8_t reg;
 
     bool carry = ( ( *MDR ) & 0b10000000 ) == 0b10000000;
 
     *MDR << 1;
 
     *MDR |= P & SET_CARRY;
-    val = *MDR;
+    reg = *MDR;
 
     if( carry )
     {
         P |= SET_CARRY;
     }
 
-    updateNegative( val );
-    updateZero( val );
+    updateNegative( reg );
+    updateZero( reg );
 }
 
 // Rotate right
 void CPUClass::ROR()
 {
-    int8_t val;
+    int8_t reg;
 
     bool carry = ( ( *MDR ) & 0b00000001 ) == 0b00000001;
 
     ( *MDR ) >> 1;
 
     *MDR |= ( P & SET_CARRY ) << 7;
-    val = *MDR;
+    reg = *MDR;
 
     if( carry )
     {
         P |= SET_CARRY;
     }
 
-    updateNegative( val );
-    updateZero( val );
+    updateNegative( reg );
+    updateZero( reg );
 }
 
 // Return from interrupt

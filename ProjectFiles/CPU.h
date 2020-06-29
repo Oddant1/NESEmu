@@ -98,18 +98,18 @@ class CPUClass
     /***************************************************************************
     * P handlers
     ***************************************************************************/
-    void updateNegative( int8_t val );
+    inline void updateNegative( int8_t reg );
     // TODO: This has opcodes. This may also need to be opcode specific
-    void updateOverflow( int8_t newVal, int8_t oldVal );
+    inline void updateOverflow( int8_t newVal, int8_t oldVal );
     // TODO: This has opcodes
-    void updateBreak();
+    inline void updateBreak();
     // TODO: This has opcodes
-    void updateDecimal();
-    void updateInterruptDisable();
-    void updateZero( int8_t val );
+    inline void updateDecimal();
+    inline void updateInterruptDisable();
+    inline void updateZero( int8_t reg );
     // TODO: This has opcodes. This will probably need to be more opcode
     // specific
-    void updateCarry( int8_t newVal, int8_t oldVal );
+    inline void updateCarry( uint16_t reg );
 
     /***************************************************************************
     * Handle addressing mode operand resolution
@@ -189,7 +189,7 @@ class CPUClass
     void BRK();
 
     // Comparing
-    void Compare( int8_t val );
+    void Compare( int8_t reg );
     void CMP();
     void CPX();
     void CPY();

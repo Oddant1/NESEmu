@@ -9,7 +9,7 @@
 				"-g",
 				"${workspaceFolder}/ProjectFiles/*.cpp",
 				"-o",
-				"${workspaceFolder}/ProjectFiles/NESEmu.out"
+				"${workspaceFolder}/NESEmu.out"
 			],
 			"options": {
 				"cwd": "/usr/bin"

@@ -5,7 +5,7 @@
       "name": "g++ build and debug active file",
       "type": "cppdbg",
       "request": "launch",
-      "program": "/home/anthony/src/NES/NESEmu/ProjectFiles/NESEmu.out",
+      "program": "/home/anthony/src/NES/NESEmu/NESEmu.out",
       "args": ["/home/anthony/src/NES/nestest.nes"],
       "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
