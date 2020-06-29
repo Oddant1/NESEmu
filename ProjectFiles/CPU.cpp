@@ -756,7 +756,7 @@ void CPUClass::ROL()
 
     bool carry = ( ( *MDR ) & 0b10000000 ) == 0b10000000;
 
-    *MDR << 1;
+    *MDR <<= 1;
 
     *MDR |= P & SET_CARRY;
     reg = *MDR;
@@ -777,7 +777,7 @@ void CPUClass::ROR()
 
     bool carry = ( ( *MDR ) & 0b00000001 ) == 0b00000001;
 
-    ( *MDR ) >> 1;
+    *MDR >>= 1;
 
     *MDR |= ( P & SET_CARRY ) << 7;
     reg = *MDR;
