@@ -27,7 +27,7 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     while( true )
     {
-        if( PC == 0xCEFC )
+        if( PC == 0xCFDB )
         {
             // break;
             std::cout << "here" << std::endl;
@@ -199,6 +199,7 @@ void CPUClass::indirect( UseRegister mode = NONE )
             address = memory[ lo++ ];
             address += memory[ lo ] << 8;
 
+            break;
         case USE_Y:
             lo = memory[ ++PC ];
 
@@ -206,6 +207,7 @@ void CPUClass::indirect( UseRegister mode = NONE )
             address += memory[ lo ] << 8;
             address += Y;
 
+            break;
         case NONE:
             address = memory[ ++PC ];
             address += memory[ ++PC ] << 8;
@@ -752,43 +754,37 @@ void CPUClass::INY()
 // Rotate left
 void CPUClass::ROL()
 {
-    int8_t reg;
-
     bool carry = ( ( *MDR ) & 0b10000000 ) == 0b10000000;
 
     *MDR <<= 1;
 
     *MDR |= P & SET_CARRY;
-    reg = *MDR;
 
     if( carry )
     {
         P |= SET_CARRY;
     }
 
-    updateNegative( reg );
-    updateZero( reg );
+    updateNegative( *MDR );
+    updateZero( *MDR );
 }
 
 // Rotate right
 void CPUClass::ROR()
 {
-    int8_t reg;
-
     bool carry = ( ( *MDR ) & 0b00000001 ) == 0b00000001;
 
     *MDR >>= 1;
 
     *MDR |= ( P & SET_CARRY ) << 7;
-    reg = *MDR;
 
     if( carry )
     {
         P |= SET_CARRY;
     }
 
-    updateNegative( reg );
-    updateZero( reg );
+    updateNegative( *MDR );
+    updateZero( *MDR );
 }
 
 // Return from interrupt
