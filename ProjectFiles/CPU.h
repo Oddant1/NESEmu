@@ -360,7 +360,7 @@ class CPUClass
         &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
         &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
         &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeY, &CPUClass::zeY,
-        &CPUClass::imp, &CPUClass::abY, &CPUClass::imm, &CPUClass::abY,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::abY,
         &CPUClass::abX, &CPUClass::abX, &CPUClass::abY, &CPUClass::abY,
         &CPUClass::imm, &CPUClass::inX, &CPUClass::imm, &CPUClass::inX,
         &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
