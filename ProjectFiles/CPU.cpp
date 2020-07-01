@@ -86,14 +86,7 @@ inline void CPUClass::execute()
 *******************************************************************************/
 inline void CPUClass::updateNegative( int8_t reg )
 {
-    if( reg < 0 )
-    {
-        P |= SET_NEGATIVE;
-    }
-    else
-    {
-        P &= ~SET_NEGATIVE;
-    }
+    reg < 0 ? P |= SET_NEGATIVE : P &= ~SET_NEGATIVE;
 }
 
 inline void CPUClass::updateBreak()
@@ -113,14 +106,7 @@ inline void CPUClass::updateInterruptDisable()
 
 inline void CPUClass::updateZero( int8_t reg )
 {
-    if( reg == 0 )
-    {
-        P |= SET_ZERO;
-    }
-    else
-    {
-        P &= ~SET_ZERO;
-    }
+    reg == 0 ? P |= SET_ZERO : P &= ~SET_ZERO;
 }
 
 /*******************************************************************************
@@ -304,10 +290,11 @@ void CPUClass::non()
 
 }
 
-// Adding opcodes
+// Add
 void CPUClass::ADC()
 {
     int8_t oldA =  A;
+    // To check for overflow
     uint16_t temp = A;
 
     temp += *MDR;
@@ -330,14 +317,8 @@ void CPUClass::ADC()
 
     updateZero( A );
 
-    if( temp > 0xFF )
-    {
-        P |= SET_CARRY;
-    }
-    else
-    {
-        P &= ~SET_CARRY;
-    }
+    // If our addition went over FF we carried from bit 7
+    temp >= 0xFF ? P |= SET_CARRY : P &= ~SET_CARRY;
 }
 
 // Subtract

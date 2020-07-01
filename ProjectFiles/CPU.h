@@ -81,6 +81,7 @@ class CPUClass
     ***************************************************************************/
     // The last address is the accumulator
     uint8_t memory[ 0x10000 ] = {};
+    // The stack is the second page in memory
     uint8_t* stack = &memory[ 0x100 ];
 
     /***************************************************************************
