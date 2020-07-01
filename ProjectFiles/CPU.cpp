@@ -318,7 +318,7 @@ void CPUClass::ADC()
     updateZero( A );
 
     // If our addition went over FF we carried from bit 7
-    temp >= 0xFF ? P |= SET_CARRY : P &= ~SET_CARRY;
+    temp > 0xFF ? P |= SET_CARRY : P &= ~SET_CARRY;
 }
 
 // Subtract
