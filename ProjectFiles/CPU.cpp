@@ -170,8 +170,8 @@ void CPUClass::abY()
 // Indirect
 void CPUClass::indirect( UseRegister mode = NONE )
 {
-    int8_t lo;
-    int8_t hi;
+    uint8_t lo;
+    uint8_t hi;
 
     uint16_t address;
 
