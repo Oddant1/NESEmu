@@ -27,7 +27,7 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     while( true )
     {
-        if( PC == 0xD48B )
+        if( PC == 0xDBB5 )
         {
             // break;
             std::cout << "here" << std::endl;
@@ -180,7 +180,7 @@ void CPUClass::indirect( UseRegister mode = NONE )
         case USE_X:
             lo = memory[ ++PC ];
             // This is supposed to just wrap
-            lo += X;
+            lo += ( uint8_t )X;
 
             address = memory[ lo++ ];
             address += memory[ lo ] << 8;
@@ -191,7 +191,7 @@ void CPUClass::indirect( UseRegister mode = NONE )
 
             address = memory[ lo++ ];
             address += memory[ lo ] << 8;
-            address += Y;
+            address += ( uint8_t )Y;
 
             break;
         case NONE:
