@@ -201,8 +201,8 @@ void CPUClass::indirect( UseRegister mode = NONE )
             lo = memory[ address++ ];
             hi = memory[ address ];
 
-            address = hi << 8;
-            address += lo;
+            address = lo;
+            address += hi << 8;
     }
 
     MDR = &memory[ address ];
