@@ -27,7 +27,7 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     while( true )
     {
-        if( PC == 0xCFDB )
+        if( PC == 0xD48B )
         {
             // break;
             std::cout << "here" << std::endl;
@@ -552,7 +552,7 @@ void CPUClass::CPY()
 // Decrementing
 void CPUClass::DEC()
 {
-    *MDR--;
+    ( *MDR )--;
 
     updateNegative( *MDR );
     updateZero( *MDR );
@@ -561,7 +561,7 @@ void CPUClass::DEC()
 // Incrementing
 void CPUClass::INC()
 {
-    *MDR++;
+    ( *MDR )++;
 
     updateNegative( *MDR );
     updateZero( *MDR );
