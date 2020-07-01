@@ -9,7 +9,7 @@
 const long CYCLE_TIME_N_SEC = 558L;
 
 // TODO: Verify correct endianness
-enum SetStatus
+enum SetP
 {
     SET_NEGATIVE          = 0b10000000,
     SET_OVERFLOW          = 0b01000000,
@@ -54,22 +54,22 @@ class CPUClass
     // These will probably be interacted with in hex
     // For test load all data into 0xC000 on. Should fit. Start PC at
     // 0xC000
-    uint16_t programCounter = 0xC000;
+    uint16_t PC = 0xC000;
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
     // 0x0100. It's initialzed to FD though... For some reason. This is based
     // on this source https://wiki.nesdev.com/w/index.php/CPU_ALL
-    uint8_t stackPointer = 0xFD;
-    int8_t accumulator = 0x00;
+    uint8_t SP = 0xFD;
+    int8_t A = 0x00;
     int8_t X = 0x00;
     int8_t Y = 0x00;
 
     // This will probably be interacted with using bitwise operations
-    uint8_t status = 0x00; //0x34;
+    uint8_t P = 0b00110100;
 
     // I think we're just going to leave the opcode here when we decode it
     // instead of shunting it of to another "register" because at this high of a
     // level that serves no purpose
-    uint16_t MDR; // Memory Data Register
+    uint8_t* MDR; // Memory Data Register
 
     // We can just think of this as where the opcode goes to be decoded, works
     // well enough since this is the decoded opcode
@@ -79,7 +79,10 @@ class CPUClass
     /***************************************************************************
     * Mapped memory
     ***************************************************************************/
-    uint8_t memory [ 0x10000 ] = {};
+    // The last address is the accumulator
+    uint8_t memory[ 0x10000 ] = {};
+    // The stack is the second page in memory
+    uint8_t* stack = &memory[ 0x100 ];
 
     /***************************************************************************
     * Runs the emulated CPU
@@ -95,20 +98,15 @@ class CPUClass
     inline void execute();
 
     /***************************************************************************
-    * Status handlers
+    * P handlers
     ***************************************************************************/
-    void updateNegative();
-    // TODO: This has opcodes. This may also need to be opcode specific
-    void updateOverflow( int8_t oldAccumulator );
+    inline void updateNegative( int8_t reg );
     // TODO: This has opcodes
-    void updateBreak();
+    inline void updateBreak();
     // TODO: This has opcodes
-    void updateDecimal();
-    void updateInterruptDisable();
-    void updateZero();
-    // TODO: This has opcodes. This will probably need to be more opcode
-    // specific
-    void updateCarry( int8_t oldAccumulator );
+    inline void updateDecimal();
+    inline void updateInterruptDisable();
+    inline void updateZero( int8_t reg );
 
     /***************************************************************************
     * Handle addressing mode operand resolution
@@ -141,7 +139,7 @@ class CPUClass
     // Implied: This does nothing
     void imp();
 
-    // Accumulator: This does nothing
+    // A: This does nothing
     void acc();
 
     // None: This literally does nothing
@@ -155,19 +153,26 @@ class CPUClass
 
     // Adding
     void ADC();
+    // Subtract
+    void SBC();
 
-    // Bitwise anding
+    // Bitwise and
     void AND();
+    // Exclusive bitwise or
+    void EOR();
+    // Bitwise or
+    void ORA();
 
     // Left shift
     void ASL();
+    // Left shift
+    void LSR();
 
     // Bit test
     void BIT();
 
     // Branching
     void Branch();
-
     void BPL();
     void BMI();
     void BVC();
@@ -181,15 +186,15 @@ class CPUClass
     void BRK();
 
     // Comparing
+    void Compare( int8_t reg );
     void CMP();
     void CPX();
     void CPY();
 
     // Decrementing
     void DEC();
-
-    // Exclusive bitwise or
-    void EOR();
+    // Incrementing
+    void INC();
 
     // Flag Setting
     void CLC();
@@ -200,9 +205,6 @@ class CPUClass
     void CLD();
     void SED();
 
-    // Incrementing
-    void INC();
-
     // Jumping
     void JMP();
     void JSR();
@@ -212,14 +214,8 @@ class CPUClass
     void LDX();
     void LDY();
 
-    // Left shift
-    void LSR();
-
     // NOTHNG
     void NOP();
-
-    // Bitwise or
-    void ORA();
 
     // Register instructions
     void TAX();
@@ -233,18 +229,13 @@ class CPUClass
 
     // Rotate left
     void ROL();
-
     // Rotate right
     void ROR();
 
     // Return from interrupt
     void RTI();
-
     // Return from subroutine
     void RTS();
-
-    // Subtract
-    void SBC();
 
     // Store
     void STA();
@@ -343,7 +334,7 @@ class CPUClass
         &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
         &CPUClass::abs, &CPUClass::inX, &CPUClass::non, &CPUClass::inX,
         &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
-        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::acc, &CPUClass::imm,
         &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
         &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
         &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
@@ -351,7 +342,7 @@ class CPUClass
         &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
         &CPUClass::imp, &CPUClass::inX, &CPUClass::non, &CPUClass::inX,
         &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
-        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::acc, &CPUClass::imm,
         &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
         &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
         &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
@@ -359,7 +350,7 @@ class CPUClass
         &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX,
         &CPUClass::imp, &CPUClass::inX, &CPUClass::non, &CPUClass::inX,
         &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
-        &CPUClass::imp, &CPUClass::imm, &CPUClass::imp, &CPUClass::imm,
+        &CPUClass::imp, &CPUClass::imm, &CPUClass::acc, &CPUClass::imm,
         &CPUClass::ind, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
         &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
         &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeX,
@@ -371,7 +362,7 @@ class CPUClass
         &CPUClass::abs, &CPUClass::abs, &CPUClass::abs, &CPUClass::abs,
         &CPUClass::rel, &CPUClass::inY, &CPUClass::non, &CPUClass::inY,
         &CPUClass::zeX, &CPUClass::zeX, &CPUClass::zeY, &CPUClass::zeY,
-        &CPUClass::imp, &CPUClass::abY, &CPUClass::imm, &CPUClass::abY,
+        &CPUClass::imp, &CPUClass::abY, &CPUClass::imp, &CPUClass::abY,
         &CPUClass::abX, &CPUClass::abX, &CPUClass::abY, &CPUClass::abY,
         &CPUClass::imm, &CPUClass::inX, &CPUClass::imm, &CPUClass::inX,
         &CPUClass::zer, &CPUClass::zer, &CPUClass::zer, &CPUClass::zer,
