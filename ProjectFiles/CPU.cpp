@@ -33,6 +33,10 @@ void CPUClass::run( std::ifstream &ROMImage )
             std::cout << "here" << std::endl;
         }
 
+        if( PC < 0x1000 )
+        {
+            myFile << "0";
+        }
         myFile << std::uppercase << std::hex << PC << std::endl;
 
         fetch();
