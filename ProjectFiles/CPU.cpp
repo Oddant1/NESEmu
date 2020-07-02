@@ -27,7 +27,7 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     while( true )
     {
-        if( PC == 0xDBF1 )
+        if( PC == 0xDBEF )
         {
             // break;
             std::cout << "here" << std::endl;
@@ -228,26 +228,23 @@ void CPUClass::inY()
 // Zero Page
 void CPUClass::zeroPage( UseRegister mode = NONE )
 {
-    int8_t offset;
+    uint8_t address = memory[ ++PC ];
 
     switch( mode )
     {
         case USE_X:
-            offset = X;
+            address += ( uint8_t )X;
             break;
 
         case USE_Y:
-            offset = Y;
+            address += ( uint8_t )Y;
             break;
-
-        default:
-            offset = 0;
     }
 
     // The value is supposed to just wrap to stay on the zero page, so we don't
     // need to handle overflows at all (if it didn't wrap it would hit the
     // stack)
-    MDR = &memory[ memory[ ++PC + offset ] ];
+    MDR = &memory[ address ];
 }
 
 void CPUClass::zer()
