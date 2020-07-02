@@ -27,7 +27,7 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     while( true )
     {
-        if( PC == 0xDF60 )
+        if( PC == 0xDBF1 )
         {
             // break;
             std::cout << "here" << std::endl;
@@ -128,7 +128,7 @@ void CPUClass::absolute( UseRegister mode = NONE )
             break;
 
         case USE_Y:
-            offset += Y;
+            offset = Y;
             break;
 
         default:
