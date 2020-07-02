@@ -27,15 +27,15 @@ void CPUClass::run( std::ifstream &ROMImage )
 
     while( true )
     {
-        if( PC == 0xDBB5 )
+        if( PC == 0xDF60 )
         {
             // break;
             std::cout << "here" << std::endl;
         }
+
         myFile << std::uppercase << std::hex << PC << std::endl;
-        // auto begin = std::chrono::high_resolution_clock::now()
+
         fetch();
-        // Decoding needs to be split into two stages
         decodeAddr();
         decodeOP();
         execute();
@@ -195,14 +195,12 @@ void CPUClass::indirect( UseRegister mode = NONE )
 
             break;
         case NONE:
-            address = memory[ ++PC ];
-            address += memory[ ++PC ] << 8;
+            lo = memory[ ++PC ];
+            hi = memory[ ++PC ];
 
-            lo = memory[ address++ ];
-            hi = memory[ address ];
-
-            address = lo;
-            address += hi << 8;
+            // We want the low byte to wrap not carry
+            address = memory[ lo++ + ( hi << 8 ) ];
+            address += memory[ lo + ( hi << 8 ) ] << 8;
     }
 
     MDR = &memory[ address ];
