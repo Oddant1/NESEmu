@@ -45,8 +45,10 @@ class CPUClass
     // 1.79 million cycles a second gives us a VERY long time before we need to
     // worry about this thing wrapping around. Like several hundred thousand
     // years
-    unsigned long long int totalCycles;
+    // In the logs this starts at 7 idk why
+    unsigned long long int totalCycles = 7;
     int cyclesRemaining;
+    int currentCycles;
 
     /***************************************************************************
     * CPU Registers

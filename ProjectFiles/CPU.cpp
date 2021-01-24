@@ -1,6 +1,7 @@
 #include "CPU.h"
 #include <iostream>
 #include <fstream>
+#include <vector>
 
 // start running here
 void CPUClass::run( std::ifstream &ROMImage )
@@ -23,15 +24,29 @@ void CPUClass::run( std::ifstream &ROMImage )
     ROMImage.seekg( 0x10, ROMImage.beg );
     ROMImage.read( ( char* )( &memory[ 0xC000 ] ), 0x4000 );
 
+    std::ifstream log( "/home/anthony/src/NES/NESEmu/fullnestest.log" );
+    std::vector<int> cycNumbers;
+
+    std::string line;
+
+    while( getline( log, line ) )
+    {
+        cycNumbers.push_back( std::stoi( line.substr( line.rfind( ":" ) + 1 ) ) );
+    }
+
+    log.close();
+
     auto begin = std::chrono::high_resolution_clock::now();
 
+    int cycLine = 0;
     while( true )
     {
-        if( PC == 0xDBEF )
+        if( totalCycles != cycNumbers[ cycLine ] )
         {
-            // break;
-            std::cout << "here" << std::endl;
+            break;
         }
+
+        currentCycles = 0;
 
         if( PC < 0x1000 )
         {
@@ -44,6 +59,9 @@ void CPUClass::run( std::ifstream &ROMImage )
         decodeOP();
         execute();
 
+        totalCycles += currentCycles;
+        cyclesRemaining -= currentCycles;
+
         // The PC is incremented here to more closely reflect the behavior of
         // the hardware. According to http://www.6502.org/tutorials/6502opcodes.html#PC
         // the PC should be on the last operand of the prior opcode until it is
@@ -54,6 +72,7 @@ void CPUClass::run( std::ifstream &ROMImage )
         // this differently would break jump tables that are designed with that
         // behavior in mind.
         PC++;
+        cycLine++;
     }
 
     auto end = std::chrono::high_resolution_clock::now();
@@ -125,9 +144,17 @@ void CPUClass::absolute( UseRegister mode = NONE )
     uint8_t lo = memory[ ++PC ];
     uint8_t hi = memory[ ++PC ];
 
+    instruction == &CPUClass::JMP ? currentCycles += 3 : currentCycles += 4;
+
     switch( mode )
     {
         case USE_X:
+            if( instruction == &CPUClass::ASL || instruction == &CPUClass::LSR ||
+                instruction == &CPUClass::ROL || instruction == &CPUClass::ROR )
+            {
+                currentCycles++;
+            }
+
             offset = X;
             break;
 
@@ -142,15 +169,20 @@ void CPUClass::absolute( UseRegister mode = NONE )
     lo += offset;
 
     // Check for carry
-    if( lo < offset )
+    if( lo < offset)
     {
         hi++;
-        totalCycles++;
+        if( !( instruction == &CPUClass::ASL || instruction == &CPUClass::LSR ||
+               instruction == &CPUClass::ROL || instruction == &CPUClass::ROR ) )
+        {
+            currentCycles++;
+        }
+
     }
+
 
     address = lo;
     address += hi << 8;
-
     // TODO: This causes issues for jumping instructions. This returns a pointer
     // to the value stored in that location. We want to jump to that location
     MDR = &memory[ address ];
@@ -182,6 +214,8 @@ void CPUClass::indirect( UseRegister mode = NONE )
     switch( mode )
     {
         case USE_X:
+            currentCycles += 6;
+
             lo = memory[ ++PC ];
             // This is supposed to just wrap
             lo += ( uint8_t )X;
@@ -191,14 +225,23 @@ void CPUClass::indirect( UseRegister mode = NONE )
 
             break;
         case USE_Y:
+            currentCycles += 5;
+
             lo = memory[ ++PC ];
 
             address = memory[ lo++ ];
             address += memory[ lo ] << 8;
             address += ( uint8_t )Y;
 
+            if( address << 8 >> 8 > ( uint8_t )Y || instruction == &CPUClass::STA )
+            {
+                currentCycles++;
+            }
+
             break;
         case NONE:
+            currentCycles += 5;
+
             lo = memory[ ++PC ];
             hi = memory[ ++PC ];
 
@@ -230,13 +273,19 @@ void CPUClass::zeroPage( UseRegister mode = NONE )
 {
     uint8_t address = memory[ ++PC ];
 
+    currentCycles += 3;
+
     switch( mode )
     {
         case USE_X:
+            currentCycles++;
+
             address += ( uint8_t )X;
             break;
 
         case USE_Y:
+            currentCycles++;
+
             address += ( uint8_t )Y;
             break;
     }
@@ -266,17 +315,21 @@ void CPUClass::zeY()
 // table for immediate opcodes
 void CPUClass::imm()
 {
+    currentCycles += 2;
+
     MDR = &memory[ ++PC ];
 }
 
 void CPUClass::rel()
 {
+    currentCycles += 2;
+
     MDR = &memory[ ++PC ];
 }
 
 void CPUClass::imp()
 {
-
+    currentCycles += 2;
 }
 
 void CPUClass::acc()
@@ -378,6 +431,7 @@ void CPUClass::ORA()
 // Left shift
 void CPUClass::ASL()
 {
+    currentCycles += 2;
 
     if( ( *MDR & 0b10000000 ) == 0b10000000 )
     {
@@ -397,6 +451,8 @@ void CPUClass::ASL()
 // Left shift
 void CPUClass::LSR()
 {
+    currentCycles += 2;
+
     if( ( *MDR  & 0b00000001 ) == 0b00000001 )
     {
         P |= SET_CARRY;
@@ -446,8 +502,17 @@ void CPUClass::BIT()
 // Branching
 void CPUClass::Branch()
 {
+    uint16_t oldPC = PC;
+
+    currentCycles++;
+
     // We need to caste the branch offset to a signed int
     PC += ( int8_t )*MDR;
+
+    // if( oldPC >> 8 != PC >> 8 )
+    // {
+    //     currentCycles++;
+    // }
 }
 
 void CPUClass::BPL()
@@ -517,7 +582,7 @@ void CPUClass::BEQ()
 // Break
 void CPUClass::BRK()
 {
-
+    totalCycles += 5;
 }
 
 // Comparing
@@ -551,6 +616,8 @@ void CPUClass::CPY()
 // Decrementing
 void CPUClass::DEC()
 {
+    currentCycles += 2;
+
     ( *MDR )--;
 
     updateNegative( *MDR );
@@ -560,6 +627,8 @@ void CPUClass::DEC()
 // Incrementing
 void CPUClass::INC()
 {
+    currentCycles += 2;
+
     ( *MDR )++;
 
     updateNegative( *MDR );
@@ -617,6 +686,8 @@ void CPUClass::JMP()
 
 void CPUClass::JSR()
 {
+    currentCycles += 2;
+
     uint8_t lo = PC & 0b0000000011111111;
     uint8_t hi = PC >> 8;
 
@@ -736,8 +807,9 @@ void CPUClass::ROL()
 {
     bool carry = ( ( *MDR ) & 0b10000000 ) == 0b10000000;
 
-    *MDR <<= 1;
+    currentCycles += 2;
 
+    *MDR <<= 1;
     *MDR |= P & SET_CARRY;
 
     if( carry )
@@ -754,8 +826,9 @@ void CPUClass::ROR()
 {
     bool carry = ( ( *MDR ) & 0b00000001 ) == 0b00000001;
 
-    *MDR >>= 1;
+    currentCycles += 2;
 
+    *MDR >>= 1;
     *MDR |= ( P & SET_CARRY ) << 7;
 
     if( carry )
@@ -770,6 +843,8 @@ void CPUClass::ROR()
 // Return from interrupt
 void CPUClass::RTI()
 {
+    currentCycles += 4;
+
     P = stack[ ++SP ];
 
     PC = stack[ ++SP ];
@@ -781,6 +856,8 @@ void CPUClass::RTI()
 // Return from subroutine
 void CPUClass::RTS()
 {
+    currentCycles += 4;
+
     // TODO: Something is going wrong attempting to return
     PC = stack[ ++SP ];
     PC += ( ( uint16_t )stack[ ++SP ] ) << 8;
@@ -824,11 +901,15 @@ void CPUClass::TSX()
 
 void CPUClass::PHA()
 {
+    currentCycles++;
+
     stack[ SP-- ] =  A;
 }
 
 void CPUClass::PLA()
 {
+    currentCycles += 2;
+
     A = stack[ ++SP ];
 
     updateNegative( A );
@@ -837,10 +918,14 @@ void CPUClass::PLA()
 
 void CPUClass::PHP()
 {
+    currentCycles++;
+
     stack[ SP-- ] = P;
 }
 
 void CPUClass::PLP()
 {
+    currentCycles += 2;
+
     P = stack[ ++SP  ];
 }
