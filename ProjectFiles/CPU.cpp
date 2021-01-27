@@ -126,6 +126,8 @@ inline void CPUClass::execute()
             zer();
             NOP();
 
+        case ORA_ZER:
+
         default:
             break;
     }
