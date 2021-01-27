@@ -9,7 +9,7 @@
 const long CYCLE_TIME_N_SEC = 558L;
 
 // TODO: Verify correct endianness
-enum SetP
+enum SetPdecodeAddr
 {
     SET_NEGATIVE          = 0b10000000,
     SET_OVERFLOW          = 0b01000000,
@@ -114,38 +114,35 @@ class CPUClass
     * Handle addressing mode operand resolution
     ***************************************************************************/
     // Absolute
-    void absolute( UseRegister mode );
-    void abs();
-    void abX();
-    void abY();
+    inline void abs( UseRegister mode );
+    inline void abX();
+    inline void abY();
 
     // Indirect
-    void indirect( UseRegister mode );
-    void ind();
-    void inX();
-    void inY();
+    inline void ind( UseRegister mode );
+    inline void inX();
+    inline void inY();
 
     // Zero Page
-    void zeroPage( UseRegister mode );
-    void zer();
-    void zeX();
-    void zeY();
+    inline void zer( UseRegister mode );
+    inline void zeX();
+    inline void zeY();
 
     // Immediate: Stupid simple
-    void imm();
+    inline void imm();
 
     // Relative
-    void rel();
+    inline void rel();
 
     // These three are formalities
-    // Implied: This does nothing
-    void imp();
+    // imp: This does nothing
+    inline void imp();
 
     // A: This does nothing
-    void acc();
+    inline void acc();
 
     // None: This literally does nothing
-    void non();
+    inline void non();
 
     /***************************************************************************
     * CPU OpCode methods
@@ -154,107 +151,107 @@ class CPUClass
     // http://www.6502.org/tutorials/6502opcodes.html
 
     // Adding
-    void ADC();
+    inline void ADC();
     // Subtract
-    void SBC();
+    inline void SBC();
 
     // Bitwise and
-    void AND();
+    inline void AND();
     // Exclusive bitwise or
-    void EOR();
+    inline void EOR();
     // Bitwise or
-    void ORA();
+    inline void ORA();
 
     // Left shift
-    void ASL();
+    inline void ASL();
     // Left shift
-    void LSR();
+    inline void LSR();
 
     // Bit test
-    void BIT();
+    inline void BIT();
 
     // Branching
-    void Branch();
-    void BPL();
-    void BMI();
-    void BVC();
-    void BVS();
-    void BCC();
-    void BCS();
-    void BNE();
-    void BEQ();
+    inline void Branch();
+    inline void BPL();
+    inline void BMI();
+    inline void BVC();
+    inline void BVS();
+    inline void BCC();
+    inline void BCS();
+    inline void BNE();
+    inline void BEQ();
 
     // Break
-    void BRK();
+    inline void BRK();
 
     // Comparing
-    void Compare( int8_t reg );
-    void CMP();
-    void CPX();
-    void CPY();
+    inline void Compare( int8_t reg );
+    inline void CMP();
+    inline void CPX();
+    inline void CPY();
 
     // Decrementing
-    void DEC();
+    inline void DEC();
     // Incrementing
-    void INC();
+    inline void INC();
 
     // Flag Setting
-    void CLC();
-    void SEC();
-    void CLI();
-    void SEI();
-    void CLV();
-    void CLD();
-    void SED();
+    inline void CLC();
+    inline void SEC();
+    inline void CLI();
+    inline void SEI();
+    inline void CLV();
+    inline void CLD();
+    inline void SED();
 
     // Jumping
-    void JMP();
-    void JSR();
+    inline void JMP();
+    inline void JSR();
 
     // Loading
-    void LDA();
-    void LDX();
-    void LDY();
+    inline void LDA();
+    inline void LDX();
+    inline void LDY();
 
     // NOTHNG
-    void NOP();
+    inline void NOP();
 
     // Register instructions
-    void TAX();
-    void TXA();
-    void DEX();
-    void INX();
-    void TAY();
-    void TYA();
-    void DEY();
-    void INY();
+    inline void TAX();
+    inline void TXA();
+    inline void DEX();
+    inline void INX();
+    inline void TAY();
+    inline void TYA();
+    inline void DEY();
+    inline void INY();
 
     // Rotate left
-    void ROL();
+    inline void ROL();
     // Rotate right
-    void ROR();
+    inline void ROR();
 
     // Return from interrupt
-    void RTI();
+    inline void RTI();
     // Return from subroutine
-    void RTS();
+    inline void RTS();
 
     // Store
-    void STA();
-    void STX();
-    void STY();
+    inline void STA();
+    inline void STX();
+    inline void STY();
 
     // Not 100% sure what the difference is between this and NOP. NOP seems to
     // be a formalized opcode where this is a placeholder
-    void STP();
+    inline void STP();
 
     // Stack instructions
-    void TXS();
-    void TSX();
-    void PHA();
-    void PLA();
-    void PHP();
-    void PLP();
+    inline void TXS();
+    inline void TSX();
+    inline void PHA();
+    inline void PLA();
+    inline void PHP();
+    inline void PLP();
 
     voidFunc opCodeArray[ 256 ] =
     {
@@ -392,5 +389,12 @@ class CPUClass
         &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX
     };
 };
+
+enum Instructions
+{
+    BRK_IMP, ORA_INX, STP_NON, SLO_INX, NOP_ZER, ORA_ZER, ASL_ZER, SLO_ZER,
+    PHP_IMP, ORA_IMM, ASL_ACC, ANC_IMM, NOP_ABS, ORA_ABS, ASL_ABS, SLO_ABS,
+    BPL_REL, ORA_INY, STP_NON, SLO_INY, NOP_
+}
 
 #endif

@@ -102,6 +102,33 @@ inline void CPUClass::execute()
 {
     ( this->*addressMode )();
     ( this->*instruction )();
+
+    switch (*MDR)
+    {
+        case BRK_IMP:
+            imp();
+            BRK();
+            /* code */
+            break;
+
+        case ORA_INX:
+            inX();
+            ORA();
+
+        case STP_NON:
+            non();
+            STP();
+
+        case SLO_INX:
+            // not implemented
+
+        case NOP_ZER:
+            zer();
+            NOP();
+
+        default:
+            break;
+    }
 }
 
 /*******************************************************************************
@@ -135,8 +162,7 @@ inline void CPUClass::updateZero( int8_t reg )
 /*******************************************************************************
 * Handle addressing mode operand resolution
 *******************************************************************************/
-// Absolute
-void CPUClass::absolute( UseRegister mode = NONE )
+inline void CPUClass::abs(  UseRegister mode = NONE  )
 {
     uint8_t offset;
     uint16_t address;
@@ -188,23 +214,18 @@ void CPUClass::absolute( UseRegister mode = NONE )
     MDR = &memory[ address ];
 }
 
-void CPUClass::abs()
+inline void CPUClass::abX()
 {
-    absolute();
+    abs( USE_X );
 }
 
-void CPUClass::abX()
+inline void CPUClass::abY()
 {
-    absolute( USE_X );
-}
-
-void CPUClass::abY()
-{
-    absolute( USE_Y );
+    abs( USE_Y );
 }
 
 // Indirect
-void CPUClass::indirect( UseRegister mode = NONE )
+inline void CPUClass::ind( UseRegister mode = NONE )
 {
     uint8_t lo;
     uint8_t hi;
@@ -253,23 +274,18 @@ void CPUClass::indirect( UseRegister mode = NONE )
     MDR = &memory[ address ];
 }
 
-void CPUClass::ind()
+inline void CPUClass::inX()
 {
-    indirect();
+    ind( USE_X );
 }
 
-void CPUClass::inX()
+inline void CPUClass::inY()
 {
-    indirect( USE_X );
-}
-
-void CPUClass::inY()
-{
-    indirect( USE_Y );
+    ind( USE_Y );
 }
 
 // Zero Page
-void CPUClass::zeroPage( UseRegister mode = NONE )
+inline void CPUClass::zer( UseRegister mode = NONE )
 {
     uint8_t address = memory[ ++PC ];
 
@@ -296,54 +312,49 @@ void CPUClass::zeroPage( UseRegister mode = NONE )
     MDR = &memory[ address ];
 }
 
-void CPUClass::zer()
+inline void CPUClass::zeX()
 {
-    zeroPage();
+    zer( USE_X );
 }
 
-void CPUClass::zeX()
+inline void CPUClass::zeY()
 {
-    zeroPage( USE_X );
-}
-
-void CPUClass::zeY()
-{
-    zeroPage( USE_Y );
+    zer( USE_Y );
 }
 
 // This is kind of a formality so there is an entry into the addressmode decode
 // table for immediate opcodes
-void CPUClass::imm()
+inline void CPUClass::imm()
 {
     currentCycles += 2;
 
     MDR = &memory[ ++PC ];
 }
 
-void CPUClass::rel()
+inline void CPUClass::rel()
 {
     currentCycles += 2;
 
     MDR = &memory[ ++PC ];
 }
 
-void CPUClass::imp()
+inline void CPUClass::imp()
 {
     currentCycles += 2;
 }
 
-void CPUClass::acc()
+inline void CPUClass::acc()
 {
     MDR = ( uint8_t* )&A;
 }
 
-void CPUClass::non()
+inline void CPUClass::non()
 {
 
 }
 
 // Add
-void CPUClass::ADC()
+inline void CPUClass::ADC()
 {
     int8_t oldA =  A;
     // To check for overflow
@@ -374,7 +385,7 @@ void CPUClass::ADC()
 }
 
 // Subtract
-void CPUClass::SBC()
+inline void CPUClass::SBC()
 {
     int8_t oldA =  A;
 
@@ -402,7 +413,7 @@ void CPUClass::SBC()
 }
 
 // Bitwise and
-void CPUClass::AND()
+inline void CPUClass::AND()
 {
      A &= *MDR;
 
@@ -411,7 +422,7 @@ void CPUClass::AND()
 }
 
 // Exclusive bitwise or
-void CPUClass::EOR()
+inline void CPUClass::EOR()
 {
      A ^= *MDR;
 
@@ -420,7 +431,7 @@ void CPUClass::EOR()
 }
 
 // Bitwise or
-void CPUClass::ORA()
+inline void CPUClass::ORA()
 {
      A |= *MDR;
 
@@ -429,7 +440,7 @@ void CPUClass::ORA()
 }
 
 // Left shift
-void CPUClass::ASL()
+inline void CPUClass::ASL()
 {
     currentCycles += 2;
 
@@ -449,7 +460,7 @@ void CPUClass::ASL()
 }
 
 // Left shift
-void CPUClass::LSR()
+inline void CPUClass::LSR()
 {
     currentCycles += 2;
 
@@ -469,7 +480,7 @@ void CPUClass::LSR()
 }
 
 // Bit test
-void CPUClass::BIT()
+inline void CPUClass::BIT()
 {
     if( ( A & *MDR ) == 0b00000000 )
     {
@@ -500,7 +511,7 @@ void CPUClass::BIT()
 }
 
 // Branching
-void CPUClass::Branch()
+inline void CPUClass::Branch()
 {
     uint16_t oldPC = PC;
 
@@ -515,7 +526,7 @@ void CPUClass::Branch()
     // }
 }
 
-void CPUClass::BPL()
+inline void CPUClass::BPL()
 {
     if( ( P & 0b10000000 ) == 0b00000000 )
     {
@@ -523,7 +534,7 @@ void CPUClass::BPL()
     }
 }
 
-void CPUClass::BMI()
+inline void CPUClass::BMI()
 {
     if( ( P & 0b10000000 ) == 0b10000000 )
     {
@@ -531,7 +542,7 @@ void CPUClass::BMI()
     }
 }
 
-void CPUClass::BVC()
+inline void CPUClass::BVC()
 {
     if( ( P & 0b01000000 ) == 0b00000000 )
     {
@@ -539,7 +550,7 @@ void CPUClass::BVC()
     }
 }
 
-void CPUClass::BVS()
+inline void CPUClass::BVS()
 {
     if( ( P & 0b01000000 ) == 0b01000000 )
     {
@@ -547,7 +558,7 @@ void CPUClass::BVS()
     }
 }
 
-void CPUClass::BCC()
+inline void CPUClass::BCC()
 {
     if( ( P & 0b00000001 ) == 0b00000000 )
     {
@@ -555,7 +566,7 @@ void CPUClass::BCC()
     }
 }
 
-void CPUClass::BCS()
+inline void CPUClass::BCS()
 {
     if( ( P & 0b00000001 ) == 0b00000001 )
     {
@@ -563,7 +574,7 @@ void CPUClass::BCS()
     }
 }
 
-void CPUClass::BNE()
+inline void CPUClass::BNE()
 {
     if( ( P & 0b00000010 ) == 0b00000000 )
     {
@@ -571,7 +582,7 @@ void CPUClass::BNE()
     }
 }
 
-void CPUClass::BEQ()
+inline void CPUClass::BEQ()
 {
     if( ( P & 0b00000010 ) == 0b00000010 )
     {
@@ -580,13 +591,13 @@ void CPUClass::BEQ()
 }
 
 // Break
-void CPUClass::BRK()
+inline void CPUClass::BRK()
 {
     totalCycles += 5;
 }
 
 // Comparing
-void CPUClass::Compare( int8_t reg )
+inline void CPUClass::Compare( int8_t reg )
 {
     // If we are comparing a value larger than the value in the register
     // we will need to borrow which for SBC and Compare means set carry
@@ -598,23 +609,23 @@ void CPUClass::Compare( int8_t reg )
     updateZero( reg );
 }
 
-void CPUClass::CMP()
+inline void CPUClass::CMP()
 {
     Compare( A );
 }
 
-void CPUClass::CPX()
+inline void CPUClass::CPX()
 {
     Compare( X );
 }
 
-void CPUClass::CPY()
+inline void CPUClass::CPY()
 {
     Compare( Y );
 }
 
 // Decrementing
-void CPUClass::DEC()
+inline void CPUClass::DEC()
 {
     currentCycles += 2;
 
@@ -625,7 +636,7 @@ void CPUClass::DEC()
 }
 
 // Incrementing
-void CPUClass::INC()
+inline void CPUClass::INC()
 {
     currentCycles += 2;
 
@@ -636,27 +647,27 @@ void CPUClass::INC()
 }
 
 // Flag Setting
-void CPUClass::CLC()
+inline void CPUClass::CLC()
 {
     P &= ~SET_CARRY;
 }
 
-void CPUClass::SEC()
+inline void CPUClass::SEC()
 {
     P |= SET_CARRY;
 }
 
-void CPUClass::CLI()
+inline void CPUClass::CLI()
 {
     P &= ~SET_INTERRUPT_DISABLE;
 }
 
-void CPUClass::SEI()
+inline void CPUClass::SEI()
 {
     P |= SET_INTERRUPT_DISABLE;
 }
 
-void CPUClass::CLV()
+inline void CPUClass::CLV()
 {
     P &= ~SET_OVERFLOW;
 }
@@ -667,24 +678,24 @@ void CPUClass::CLV()
 * what I've read. So I suppose they would probably work and set the flag, it
 * just wouldn't do anythin
 */
-void CPUClass::CLD()
+inline void CPUClass::CLD()
 {
     P &= ~SET_DECIMAL;
 }
 
-void CPUClass::SED()
+inline void CPUClass::SED()
 {
     P |= SET_DECIMAL;
 }
 
 // Jumping
-void CPUClass::JMP()
+inline void CPUClass::JMP()
 {
     // Note: -1 because we increment the PC at the end of run
     PC = MDR - memory - 1;
 }
 
-void CPUClass::JSR()
+inline void CPUClass::JSR()
 {
     currentCycles += 2;
 
@@ -700,7 +711,7 @@ void CPUClass::JSR()
 }
 
 // Loading
-void CPUClass::LDA()
+inline void CPUClass::LDA()
 {
      A = *MDR;
 
@@ -708,7 +719,7 @@ void CPUClass::LDA()
     updateZero( A );
 }
 
-void CPUClass::LDX()
+inline void CPUClass::LDX()
 {
     X = *MDR;
 
@@ -716,7 +727,7 @@ void CPUClass::LDX()
     updateZero( X );
 }
 
-void CPUClass::LDY()
+inline void CPUClass::LDY()
 {
     Y = *MDR;
 
@@ -725,13 +736,13 @@ void CPUClass::LDY()
 }
 
 // NOTHNG
-void CPUClass::NOP()
+inline void CPUClass::NOP()
 {
 
 }
 
 // Register instructions
-void CPUClass::TAX()
+inline void CPUClass::TAX()
 {
     X =  A;
 
@@ -739,7 +750,7 @@ void CPUClass::TAX()
     updateZero( X );
 }
 
-void CPUClass::TXA()
+inline void CPUClass::TXA()
 {
      A = X;
 
@@ -747,7 +758,7 @@ void CPUClass::TXA()
     updateZero( A );
 }
 
-void CPUClass::DEX()
+inline void CPUClass::DEX()
 {
     X--;
 
@@ -755,7 +766,7 @@ void CPUClass::DEX()
     updateZero( X );
 }
 
-void CPUClass::INX()
+inline void CPUClass::INX()
 {
     X++;
 
@@ -763,7 +774,7 @@ void CPUClass::INX()
     updateZero( X );
 }
 
-void CPUClass::TAY()
+inline void CPUClass::TAY()
 {
     Y =  A;
 
@@ -771,7 +782,7 @@ void CPUClass::TAY()
     updateZero( Y );
 }
 
-void CPUClass::TYA()
+inline void CPUClass::TYA()
 {
      A = Y;
 
@@ -779,7 +790,7 @@ void CPUClass::TYA()
     updateZero( Y );
 }
 
-void CPUClass::DEY()
+inline void CPUClass::DEY()
 {
     Y--;
 
@@ -787,7 +798,7 @@ void CPUClass::DEY()
     updateZero( Y );
 }
 
-void CPUClass::INY()
+inline void CPUClass::INY()
 {
     Y++;
 
@@ -803,7 +814,7 @@ void CPUClass::INY()
 * the carry, not bit 0, and the carry got rotated into bit 0.
 */
 // Rotate left
-void CPUClass::ROL()
+inline void CPUClass::ROL()
 {
     bool carry = ( ( *MDR ) & 0b10000000 ) == 0b10000000;
 
@@ -822,7 +833,7 @@ void CPUClass::ROL()
 }
 
 // Rotate right
-void CPUClass::ROR()
+inline void CPUClass::ROR()
 {
     bool carry = ( ( *MDR ) & 0b00000001 ) == 0b00000001;
 
@@ -841,7 +852,7 @@ void CPUClass::ROR()
 }
 
 // Return from interrupt
-void CPUClass::RTI()
+inline void CPUClass::RTI()
 {
     currentCycles += 4;
 
@@ -854,7 +865,7 @@ void CPUClass::RTI()
 }
 
 // Return from subroutine
-void CPUClass::RTS()
+inline void CPUClass::RTS()
 {
     currentCycles += 4;
 
@@ -864,34 +875,34 @@ void CPUClass::RTS()
 }
 
 // Store
-void CPUClass::STA()
+inline void CPUClass::STA()
 {
     *MDR =  A;
 }
 
-void CPUClass::STX()
+inline void CPUClass::STX()
 {
     *MDR = X;
 }
 
-void CPUClass::STY()
+inline void CPUClass::STY()
 {
     *MDR = Y;
 }
 
 // Not 100% sure what the difference is between this and NOP
-void CPUClass::STP()
+inline void CPUClass::STP()
 {
 
 }
 
 // Stack instructions
-void CPUClass::TXS()
+inline void CPUClass::TXS()
 {
     SP = X;
 }
 
-void CPUClass::TSX()
+inline void CPUClass::TSX()
 {
     X = SP;
 
@@ -899,14 +910,14 @@ void CPUClass::TSX()
     updateZero( X );
 }
 
-void CPUClass::PHA()
+inline void CPUClass::PHA()
 {
     currentCycles++;
 
     stack[ SP-- ] =  A;
 }
 
-void CPUClass::PLA()
+inline void CPUClass::PLA()
 {
     currentCycles += 2;
 
@@ -916,14 +927,14 @@ void CPUClass::PLA()
     updateZero( A );
 }
 
-void CPUClass::PHP()
+inline void CPUClass::PHP()
 {
     currentCycles++;
 
     stack[ SP-- ] = P;
 }
 
-void CPUClass::PLP()
+inline void CPUClass::PLP()
 {
     currentCycles += 2;
 
