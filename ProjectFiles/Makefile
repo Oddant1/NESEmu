@@ -3,5 +3,7 @@ all:
 	g++ -g -Wall NESEmu.cpp CPU.cpp -o NESEmu.out
 
 clean:
-	\rm *.out
-	\rm *.o
+	rm -f *.out
+	rm -f *.o
+	rm -f *.log
+	rm -f *.txt
