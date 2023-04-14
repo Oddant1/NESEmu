@@ -9,7 +9,7 @@
 const long CYCLE_TIME_N_SEC = 558L;
 
 // TODO: Verify correct endianness
-enum SetPdecodeAddr
+enum SetP
 {
     SET_NEGATIVE          = 0b10000000,
     SET_OVERFLOW          = 0b01000000,
@@ -45,10 +45,8 @@ class CPUClass
     // 1.79 million cycles a second gives us a VERY long time before we need to
     // worry about this thing wrapping around. Like several hundred thousand
     // years
-    // In the logs this starts at 7 idk why
-    unsigned long long int totalCycles = 7;
+    unsigned long long int totalCycles;
     int cyclesRemaining;
-    int currentCycles;
 
     /***************************************************************************
     * CPU Registers
@@ -114,35 +112,38 @@ class CPUClass
     * Handle addressing mode operand resolution
     ***************************************************************************/
     // Absolute
-    inline void abs( UseRegister mode );
-    inline void abX();
-    inline void abY();
+    void absolute( UseRegister mode );
+    void abs();
+    void abX();
+    void abY();
 
     // Indirect
-    inline void ind( UseRegister mode );
-    inline void inX();
-    inline void inY();
+    void indirect( UseRegister mode );
+    void ind();
+    void inX();
+    void inY();
 
     // Zero Page
-    inline void zer( UseRegister mode );
-    inline void zeX();
-    inline void zeY();
+    void zeroPage( UseRegister mode );
+    void zer();
+    void zeX();
+    void zeY();
 
     // Immediate: Stupid simple
-    inline void imm();
+    void imm();
 
     // Relative
-    inline void rel();
+    void rel();
 
     // These three are formalities
-    // imp: This does nothing
-    inline void imp();
+    // Implied: This does nothing
+    void imp();
 
     // A: This does nothing
-    inline void acc();
+    void acc();
 
     // None: This literally does nothing
-    inline void non();
+    void non();
 
     /***************************************************************************
     * CPU OpCode methods
@@ -151,107 +152,107 @@ class CPUClass
     // http://www.6502.org/tutorials/6502opcodes.html
 
     // Adding
-    inline void ADC();
+    void ADC();
     // Subtract
-    inline void SBC();
+    void SBC();
 
     // Bitwise and
-    inline void AND();
+    void AND();
     // Exclusive bitwise or
-    inline void EOR();
+    void EOR();
     // Bitwise or
-    inline void ORA();
+    void ORA();
 
     // Left shift
-    inline void ASL();
+    void ASL();
     // Left shift
-    inline void LSR();
+    void LSR();
 
     // Bit test
-    inline void BIT();
+    void BIT();
 
     // Branching
-    inline void Branch();
-    inline void BPL();
-    inline void BMI();
-    inline void BVC();
-    inline void BVS();
-    inline void BCC();
-    inline void BCS();
-    inline void BNE();
-    inline void BEQ();
+    void Branch();
+    void BPL();
+    void BMI();
+    void BVC();
+    void BVS();
+    void BCC();
+    void BCS();
+    void BNE();
+    void BEQ();
 
     // Break
-    inline void BRK();
+    void BRK();
 
     // Comparing
-    inline void Compare( int8_t reg );
-    inline void CMP();
-    inline void CPX();
-    inline void CPY();
+    void Compare( int8_t reg );
+    void CMP();
+    void CPX();
+    void CPY();
 
     // Decrementing
-    inline void DEC();
+    void DEC();
     // Incrementing
-    inline void INC();
+    void INC();
 
     // Flag Setting
-    inline void CLC();
-    inline void SEC();
-    inline void CLI();
-    inline void SEI();
-    inline void CLV();
-    inline void CLD();
-    inline void SED();
+    void CLC();
+    void SEC();
+    void CLI();
+    void SEI();
+    void CLV();
+    void CLD();
+    void SED();
 
     // Jumping
-    inline void JMP();
-    inline void JSR();
+    void JMP();
+    void JSR();
 
     // Loading
-    inline void LDA();
-    inline void LDX();
-    inline void LDY();
+    void LDA();
+    void LDX();
+    void LDY();
 
     // NOTHNG
-    inline void NOP();
+    void NOP();
 
     // Register instructions
-    inline void TAX();
-    inline void TXA();
-    inline void DEX();
-    inline void INX();
-    inline void TAY();
-    inline void TYA();
-    inline void DEY();
-    inline void INY();
+    void TAX();
+    void TXA();
+    void DEX();
+    void INX();
+    void TAY();
+    void TYA();
+    void DEY();
+    void INY();
 
     // Rotate left
-    inline void ROL();
+    void ROL();
     // Rotate right
-    inline void ROR();
+    void ROR();
 
     // Return from interrupt
-    inline void RTI();
+    void RTI();
     // Return from subroutine
-    inline void RTS();
+    void RTS();
 
     // Store
-    inline void STA();
-    inline void STX();
-    inline void STY();
+    void STA();
+    void STX();
+    void STY();
 
     // Not 100% sure what the difference is between this and NOP. NOP seems to
     // be a formalized opcode where this is a placeholder
-    inline void STP();
+    void STP();
 
     // Stack instructions
-    inline void TXS();
-    inline void TSX();
-    inline void PHA();
-    inline void PLA();
-    inline void PHP();
-    inline void PLP();
+    void TXS();
+    void TSX();
+    void PHA();
+    void PLA();
+    void PHP();
+    void PLP();
 
     voidFunc opCodeArray[ 256 ] =
     {
@@ -389,17 +390,5 @@ class CPUClass
         &CPUClass::abX, &CPUClass::abX, &CPUClass::abX, &CPUClass::abX
     };
 };
-
-enum Instructions
-{
-    BRK_IMP, ORA_INX, STP_NON, SLO_INX, NOP_ZER, ORA_ZER, ASL_ZER, SLO_ZER, PHP_IMP, ORA_IMM, ASL_ACC, ANC_IMM, NOP_ABS, ORA_ABS, ASL_ABS, SLO_ABS, BPL_REL, ORA_INY, STP_NON, SLO_INY, NOP_ZEX, ORA_ZEX, ASL_ZEX, SLO_ZEX, CLC_IMP, ORA_ABY, NOP_NON, SLO_ABY, NOP_ABX, ORA_ABX, ASL_ABX, SLO_ABX,
-    JSR_ABS, AND_INX, STP_NON, RLA_INX, BIT_IMM, AND_IMM, ROL_IMM, RLA_IMM, PLP_IMP, AND_IMM, ROL_ACC, ANC_IMM, BIT_ABS, AND_ABS, ROL_ABS, RLA_ABS, BMI_REL, AND_INY, STP_NON, RLA_INY, NOP_ZEX, AND_ZEX, ROL_ZEX, RLA_ZEX, SEC_IMP, AND_ABY, NOP_NON, RLA_ABY, NOP_ABX, AND_ABX, ROL_ABX, RLA_ABX,
-    RTI_IMP, EOR_INX, STP_NON, SRE_INX, NOP_ZER, EOR_ZER, LSR_ZER, SRE_ZER, PHA_IMP, EOR_IMM, LSR_ACC, ALR_IMM, JMP_ABS, EOR_ABS, LSR_ABS, SRE_ABS, BVC_REL, EOR_INY, STP_NON, SRE_INY, NOP_ZEX, EOR_ZEX, LSR_ZEX, SRE_ZEX, CLI_IMP, EOR_ABY, NOP_NON, SRE_ABY, NOP_ABX, EOR_ABX, LSR_ABX, SRE_ABX,
-    RTS_IMM, ADC_INX, STP_NON, RRA_INX, NOP_ZER, ADC_ZER, ROR_ZER, RRA_ZER, PLA_IMP, ADC_IMM, ROR_ACC, ARR_IMM, JMP_IND, ADC_ABS, ROR_ABS, RRA_ABS, BVS_REL, ADC_INY, STP_NON, RRA_INY, NOP_ZEX, ADC_ZEX, ROR_ZEX, RRA_ZEX, SEI_IMP, ADC_ZEY, NOP_NON, RRA_ABY, NOP_ABX, ADC_ABX, ROR_ABX, RRA_ABX,
-    NOP_IMM, STA_INX, NOP_IMM, SAX_INX, STY_ZER, STA_ZER, STX_ZER, SAX_ZER, DEY_IMP, NOP_IMM, TXA_IMP, XAA_IMM, STY_ABS, STA_ABS, STX_ABS, SAX_ABS, BCC_REL, STA_INY, STP_NON, AHX_INY, STY_ZEX, STA_ZEX, STX_ZEY, SAX_ZEY, TYA_IMP, STA_ABY, TXS_IMP, TAS_ABY, SHY_ABX, STA_ABX, SHX_ABY, AHX_ABY,
-    LDY_IMM, LDA_INX, LDX_IMM, LAX_INX, LDY_ZER, LDA_ZER, LDX_ZER, LAX_ZER, TAY_IMP, LDA_IMM, TAX_IMP, LAX_IMM, LDY_ABS, LDA_ABS, LDX_ABS, LAX_ABS, BCS_REL, LDA_INY, STP_NON, LAX_INY, LDY_ZEX, LDA_ZEX, LDX_ZEY, LAX_ZEY, CLV_IMP, LDA_ABY, TSX_IMP, LAS_ABY, LDY_ABX, LDA_ABX, LDX_ABY, LAX_ABY,
-    CPY_IMM, CMP_INX, NOP_IMM, DCP_INX, CPY_ZER, CMP_ZER, DEC_ZER, DCP_ZER, INY_IMP, CMP_IMM, DEX_IMP, AXS_IMM, CPY_ABS, CMP_ABS, DEC_ABS, DCP_ABS, BNE_REL, CMP_INY, STP_NON, NOP_ZEX, CMP_ZEX, DEC_ZEX, DEC_ZEX, DCP_ZEX, CLD_IMP, CMP_ABY, NOP_NON, DCP_ABY, NOP_ABX, CMP_ABX, DEC_ABX, DCP_ABX,
-    CPX_IMM, SBC_INX, NOP_IMM, ISC_INX, CPX_ZER, SBC_ZER, INC_ZER, ISC_ZER, INX_IMP, SBC_IMM, NOP_NON, SBC_IMM, CPX_ABS, SBC_ABS, INC_ABS, ISC_ABS, BEQ_REL, SBC_INY, STP_NON, ISC_INY, NOP_ZEX, SBC_ZEX, INC_ZEX, ISC_ZEX, SED_IMP, SBC_ABY, NOP_NON, ISC_ABY, NOP_ABX, SBC_ABX, INC_ABX, ISC_ABX
-}
 
 #endif

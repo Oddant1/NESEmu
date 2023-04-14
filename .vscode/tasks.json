@@ -7,9 +7,9 @@
 			"command": "/usr/bin/g++",
 			"args": [
 				"-g",
-				"${workspaceFolder}/ProjectFiles/*.cpp",
+				"${workspaceFolder}/NESEmu/ProjectFiles/*.cpp",
 				"-o",
-				"${workspaceFolder}/NESEmu.out"
+				"${workspaceFolder}/NESEmu/ProjectFiles/NESEmu.out"
 			],
 			"options": {
 				"cwd": "/usr/bin"
