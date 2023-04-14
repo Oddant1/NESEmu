@@ -206,6 +206,11 @@ void CPUClass::indirect( UseRegister mode = NONE )
             // We want the low byte to wrap not carry
             address = memory[ lo++ + ( hi << 8 ) ];
             address += memory[ lo + ( hi << 8 ) ] << 8;
+            break;
+        default:
+            // TODO: The case USE_ACC is not supported, there should probably
+            // be some kinda failure case here
+            break;
     }
 
     MDR = &memory[ address ];
@@ -239,6 +244,9 @@ void CPUClass::zeroPage( UseRegister mode = NONE )
 
         case USE_Y:
             address += ( uint8_t )Y;
+            break;
+        default:
+            // TODO: case NONE should be an error
             break;
     }
 
