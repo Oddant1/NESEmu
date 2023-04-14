@@ -1,8 +1,1 @@
-# NOTE: Pending redesign at some point. The tables of function pointers were a fun exercise, but a refactor into a switch statement is almost certainly a better way forward
-
-# NESEmu
-Putting this here so I'm obligated to work on it
-
-Plan: Follow the steps layed out by this guy https://yizhang82.dev/nes-emu-overview
-
-Interface: Just pass path to ROM from command line. Simplest interface.
+# NOTE: If I want this to work in the long run, I need to get the timings down. Right now I do not track the cycle counts, and my current approach to executing things may make it difficult to track the cycle counts accurately. This feels very obvious now that I've done some hardware emulation for work.
