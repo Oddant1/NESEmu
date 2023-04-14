@@ -3,11 +3,8 @@
 #include <fstream>
 
 // start running here
-void CPUClass::run( std::ifstream &ROMImage )
+void CPUClass::run( std::ifstream &ROMImage, std::ofstream &logFile )
 {
-    std::ofstream myFile;
-    myFile.open("test.txt");
-
     // TODO: So I've been messing around with trying to keep time on some tiny
     // toy programs, and I think it's going to have to go something like this.
     // 1. Complete necessary computation for one frame
@@ -36,9 +33,9 @@ void CPUClass::run( std::ifstream &ROMImage )
 
         if( PC < 0x1000 )
         {
-            myFile << "0";
+            logFile << "0";
         }
-        myFile << std::uppercase << std::hex << PC << std::endl;
+        logFile << std::uppercase << std::hex << PC << std::endl;
 
         fetch();
         decodeAddr();

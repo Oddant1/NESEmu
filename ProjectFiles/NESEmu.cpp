@@ -9,7 +9,11 @@ int main( int argc, char* argv[] )
     CPUClass CPU = CPUClass();
 
     std::ifstream ROMImage( argv[1], std::ios::binary );
-    CPU.run( ROMImage );
+    std::ofstream logFile;
+
+    logFile.open( argv[2] );
+    CPU.run( ROMImage, logFile );
+    logFile.close();
 
     std::bitset<8> stat( CPU.P );
 
