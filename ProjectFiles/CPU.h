@@ -58,13 +58,13 @@ class CPUClass
     // Stack starts at 0x01FF and goes down to 0x0100. Pointer is offset from
     // 0x0100. It's initialzed to FD though... For some reason. This is based
     // on this source https://wiki.nesdev.com/w/index.php/CPU_ALL
-    uint8_t SP = 0xFD;
-    int8_t A = 0x00;
-    int8_t X = 0x00;
-    int8_t Y = 0x00;
+    uint8_t SP = 0xFD; // Stack pointer
+    int8_t A = 0x00; // Accumulator
+    int8_t X = 0x00; // X register
+    int8_t Y = 0x00; // Y register
 
     // This will probably be interacted with using bitwise operations
-    uint8_t P = 0b00110100;
+    uint8_t P = 0b00110100; // Status Register
 
     // I think we're just going to leave the opcode here when we decode it
     // instead of shunting it of to another "register" because at this high of a
